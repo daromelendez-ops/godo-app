@@ -10,7 +10,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Check, X, Star } from 'lucide-react-native';
+import { Check, X, Star, CheckCircle2, Camera, Users } from 'lucide-react-native';
 import { Colors } from '../../constants/colors';
 import { useAuthStore } from '../../stores/authStore';
 import {
@@ -221,7 +221,7 @@ export default function InboxScreen() {
           <>
             {pendingAttendees.length === 0 ? (
               <View style={s.empty}>
-                <Text style={s.emptyEmoji}>✅</Text>
+                <View style={s.emptyIcon}><CheckCircle2 size={40} color={Colors.primary} strokeWidth={1.5} /></View>
                 <Text style={s.emptyTitle}>All clear!</Text>
                 <Text style={s.emptySub}>No pending join requests right now.</Text>
               </View>
@@ -270,7 +270,7 @@ export default function InboxScreen() {
           <>
             {pendingPhotos.length === 0 ? (
               <View style={s.empty}>
-                <Text style={s.emptyEmoji}>📷</Text>
+                <View style={s.emptyIcon}><Camera size={40} color={Colors.primary} strokeWidth={1.5} /></View>
                 <Text style={s.emptyTitle}>No pending photos</Text>
                 <Text style={s.emptySub}>All photos have been reviewed.</Text>
               </View>
@@ -319,7 +319,7 @@ export default function InboxScreen() {
           <>
             {confirmedAttendees.length === 0 ? (
               <View style={s.empty}>
-                <Text style={s.emptyEmoji}>⭐</Text>
+                <View style={s.emptyIcon}><Users size={40} color={Colors.primary} strokeWidth={1.5} /></View>
                 <Text style={s.emptyTitle}>No attendees to rate</Text>
                 <Text style={s.emptySub}>Attendees will appear here after your events.</Text>
               </View>
@@ -420,7 +420,7 @@ const s = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { padding: 16, gap: 10, paddingBottom: 40 },
   empty: { marginTop: 60, alignItems: 'center', gap: 10 },
-  emptyEmoji: { fontSize: 44, marginBottom: 4 },
+  emptyIcon: { width: 72, height: 72, borderRadius: 20, backgroundColor: Colors.primaryLight, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
   emptyTitle: { fontSize: 17, fontFamily: 'Inter_600SemiBold', color: Colors.textPrimary },
   emptySub: {
     fontSize: 14,

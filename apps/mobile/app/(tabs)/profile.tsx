@@ -6,6 +6,7 @@ import {
   Pressable,
   ScrollView,
   Alert,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -25,7 +26,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { router } from 'expo-router';
 import { getHostStats, fetchUserUpcomingEvents, fetchSavedEvents } from '../../lib/events';
 
-function Avatar({ name }: { name: string }) {
+function Avatar({ name, uri }: { name: string; uri?: string }) {
   const initials = name
     .split(' ')
     .map((w) => w[0])
@@ -33,6 +34,9 @@ function Avatar({ name }: { name: string }) {
     .toUpperCase()
     .slice(0, 2);
 
+  if (uri) {
+    return <Image source={{ uri }} style={styles.avatar} />;
+  }
   return (
     <View style={styles.avatar}>
       <Text style={styles.avatarText}>{initials}</Text>
@@ -133,7 +137,7 @@ export default function ProfileScreen() {
       >
         {/* Avatar + identity */}
         <View style={styles.identityCard}>
-          <Avatar name={name} />
+          <Avatar name={name} uri={user?.user_metadata?.avatar_url as string | undefined} />
           <Text style={styles.name}>{name}</Text>
           <Text style={styles.email}>{email}</Text>
           <Text style={styles.memberSince}>Member since {memberYear}</Text>

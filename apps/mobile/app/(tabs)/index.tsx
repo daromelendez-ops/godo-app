@@ -7,6 +7,7 @@ import {
   RefreshControl,
   Pressable,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bell } from 'lucide-react-native';
@@ -27,11 +28,13 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [events, setEvents] = useState<FeedEvent[]>([]);
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   async function loadFeed() {
     const data = await fetchFeed();
     setEvents(data);
+    setLoading(false);
   }
 
   useEffect(() => {
@@ -120,10 +123,16 @@ export default function HomeScreen() {
           />
         }
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>Nothing here yet</Text>
-            <Text style={styles.emptySub}>Try a different filter or check back soon.</Text>
-          </View>
+          loading ? (
+            <View style={styles.empty}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
+          ) : (
+            <View style={styles.empty}>
+              <Text style={styles.emptyTitle}>Nothing here yet</Text>
+              <Text style={styles.emptySub}>Try a different filter or check back soon.</Text>
+            </View>
+          )
         }
       />
     </SafeAreaView>
