@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
+    "@react-native-community/datetimepicker": "8.4.4",
     "@stripe/stripe-react-native": "0.50.3",
     "@supabase/supabase-js": "^2.105.4",
     "date-fns": "^4.1.0",

@@ -12,11 +12,13 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Video, ResizeMode } from 'expo-av';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { X, ChevronRight, Camera, ImagePlus } from 'lucide-react-native';
+import { X, ChevronRight, Camera, ImagePlus, CalendarDays, Clock } from 'lucide-react-native';
 import { CategoryIcon } from '../../components/ui/CategoryIcon';
 import type { ImagePickerAsset } from 'expo-image-picker';
 import { Colors } from '../../constants/colors';
@@ -55,7 +57,10 @@ export default function CreateScreen() {
   const [description, setDescription] = useState('');
   const [address, setAddress] = useState('');
   const [neighborhood, setNeighborhood] = useState('');
-  const [dateText, setDateText] = useState('');
+  const [eventDate, setEventDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [tempDate, setTempDate] = useState(new Date());
   const [publishing, setPublishing] = useState(false);
   const [coverAsset, setCoverAsset] = useState<ImagePickerAsset | null>(null);
 
@@ -70,16 +75,19 @@ export default function CreateScreen() {
     description.trim() &&
     address.trim() &&
     neighborhood.trim() &&
-    dateText.trim() &&
+    eventDate !== null &&
     (!isPaid || (price && parseFloat(price) > 0));
 
+  function formatEventDate(d: Date) {
+    return d.toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function formatEventTime(d: Date) {
+    return d.toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit' });
+  }
+
   async function handlePublish() {
-    if (!canPublish || !user) return;
-    const parsed = new Date(dateText);
-    if (isNaN(parsed.getTime())) {
-      Alert.alert('Invalid date', 'Use format: YYYY-MM-DD HH:MM (e.g. 2025-06-15 19:00)');
-      return;
-    }
+    if (!canPublish || !user || !eventDate) return;
     setPublishing(true);
 
     // Upload cover media if selected
@@ -107,7 +115,7 @@ export default function CreateScreen() {
       priceCents: isPaid ? Math.round(parseFloat(price) * 100) : 0,
       neighborhood: neighborhood.trim(),
       address: address.trim(),
-      startsAt: parsed,
+      startsAt: eventDate,
       coverPhotoUrl: coverUrl,
       coverType,
     });
@@ -336,15 +344,98 @@ export default function CreateScreen() {
           {/* Date & time */}
           <View style={s.section}>
             <Text style={s.label}>Date & time *</Text>
-            <TextInput
-              style={s.input}
-              placeholder="YYYY-MM-DD HH:MM  (e.g. 2025-06-15 19:00)"
-              placeholderTextColor={Colors.textLight}
-              value={dateText}
-              onChangeText={setDateText}
-              keyboardType="numbers-and-punctuation"
-              returnKeyType="next"
-            />
+            <View style={s.dateRow}>
+              <Pressable
+                style={s.dateBtn}
+                onPress={() => { setTempDate(eventDate ?? new Date()); setShowDatePicker(true); }}
+              >
+                <CalendarDays size={16} color={Colors.primary} strokeWidth={2} />
+                <Text style={[s.dateBtnText, !eventDate && s.datePlaceholder]}>
+                  {eventDate ? formatEventDate(eventDate) : 'Pick a date'}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={s.dateBtn}
+                onPress={() => { setTempDate(eventDate ?? new Date()); setShowTimePicker(true); }}
+              >
+                <Clock size={16} color={Colors.primary} strokeWidth={2} />
+                <Text style={[s.dateBtnText, !eventDate && s.datePlaceholder]}>
+                  {eventDate ? formatEventTime(eventDate) : 'Pick a time'}
+                </Text>
+              </Pressable>
+            </View>
+
+            {/* iOS inline pickers in modal */}
+            {Platform.OS === 'ios' && (showDatePicker || showTimePicker) && (
+              <Modal transparent animationType="slide">
+                <View style={s.pickerModal}>
+                  <View style={s.pickerCard}>
+                    <Text style={s.pickerTitle}>
+                      {showDatePicker ? 'Select Date' : 'Select Time'}
+                    </Text>
+                    <DateTimePicker
+                      value={tempDate}
+                      mode={showDatePicker ? 'date' : 'time'}
+                      display="spinner"
+                      minimumDate={new Date()}
+                      onChange={(_, d) => { if (d) setTempDate(d); }}
+                    />
+                    <Pressable
+                      style={s.pickerDone}
+                      onPress={() => {
+                        const base = eventDate ?? new Date();
+                        if (showDatePicker) {
+                          const merged = new Date(base);
+                          merged.setFullYear(tempDate.getFullYear(), tempDate.getMonth(), tempDate.getDate());
+                          setEventDate(merged);
+                          setShowDatePicker(false);
+                        } else {
+                          const merged = new Date(base);
+                          merged.setHours(tempDate.getHours(), tempDate.getMinutes());
+                          setEventDate(merged);
+                          setShowTimePicker(false);
+                        }
+                      }}
+                    >
+                      <Text style={s.pickerDoneText}>Done</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </Modal>
+            )}
+
+            {/* Android native pickers (inline, no modal needed) */}
+            {Platform.OS === 'android' && showDatePicker && (
+              <DateTimePicker
+                value={tempDate}
+                mode="date"
+                display="default"
+                minimumDate={new Date()}
+                onChange={(_, d) => {
+                  setShowDatePicker(false);
+                  if (d) {
+                    const merged = new Date(eventDate ?? new Date());
+                    merged.setFullYear(d.getFullYear(), d.getMonth(), d.getDate());
+                    setEventDate(merged);
+                  }
+                }}
+              />
+            )}
+            {Platform.OS === 'android' && showTimePicker && (
+              <DateTimePicker
+                value={tempDate}
+                mode="time"
+                display="default"
+                onChange={(_, d) => {
+                  setShowTimePicker(false);
+                  if (d) {
+                    const merged = new Date(eventDate ?? new Date());
+                    merged.setHours(d.getHours(), d.getMinutes());
+                    setEventDate(merged);
+                  }
+                }}
+              />
+            )}
           </View>
 
           {/* Description */}
@@ -564,6 +655,64 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.55)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  dateRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  dateBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    height: 48,
+    backgroundColor: Colors.background,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: 14,
+  },
+  dateBtnText: {
+    fontSize: 14,
+    fontFamily: 'Inter_500Medium',
+    color: Colors.textPrimary,
+    flex: 1,
+  },
+  datePlaceholder: {
+    color: Colors.textLight,
+  },
+  pickerModal: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  pickerCard: {
+    backgroundColor: Colors.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 32,
+    paddingTop: 16,
+  },
+  pickerTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter_600SemiBold',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    paddingBottom: 8,
+  },
+  pickerDone: {
+    marginHorizontal: 20,
+    marginTop: 12,
+    height: 50,
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pickerDoneText: {
+    fontSize: 16,
+    fontFamily: 'Inter_600SemiBold',
+    color: '#FFF',
   },
   coverButtons: {
     gap: 10,
