@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Image, Dimensions } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
 import { Heart, Bookmark, Share2, MapPin } from 'lucide-react-native';
 import { Colors } from '../../constants/colors';
 import type { FeedEvent } from '../../constants/mockData';
@@ -29,7 +30,18 @@ export function FeedCard({ event, onPress }: FeedCardProps) {
 
       {/* Media — edge to edge, square */}
       <View style={styles.mediaWrap}>
-        <Image source={{ uri: event.mediaUrl }} style={styles.media} resizeMode="cover" />
+        {event.mediaType === 'video' ? (
+          <Video
+            source={{ uri: event.mediaUrl }}
+            style={styles.media}
+            resizeMode={ResizeMode.COVER}
+            isLooping
+            isMuted
+            shouldPlay
+          />
+        ) : (
+          <Image source={{ uri: event.mediaUrl }} style={styles.media} resizeMode="cover" />
+        )}
         {isUpcoming && event.price && (
           <View style={styles.priceBadge}>
             <Text style={styles.priceText}>{event.price}</Text>

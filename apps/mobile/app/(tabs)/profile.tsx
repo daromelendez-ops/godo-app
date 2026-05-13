@@ -21,9 +21,9 @@ import {
 import { Colors } from '../../constants/colors';
 import { useAuthStore } from '../../stores/authStore';
 import { router } from 'expo-router';
-import { mockEvents } from '../../constants/mockData';
+import { MOCK_EVENTS } from '../../constants/mockData';
 
-const UPCOMING = mockEvents.filter((e) => e.type === 'upcoming').slice(0, 2);
+const UPCOMING = MOCK_EVENTS.filter((e) => e.type === 'upcoming').slice(0, 2);
 
 function Avatar({ name }: { name: string }) {
   const initials = name
