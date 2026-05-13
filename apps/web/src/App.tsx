@@ -423,6 +423,10 @@ function WaitlistSection() {
       });
       if (res.ok || res.status === 409) {
         setSubmitted(true);
+        setTimeout(() => {
+          setSubmitted(false);
+          setEmail('');
+        }, 3000);
       } else {
         setError('Something went wrong. Try again.');
       }
