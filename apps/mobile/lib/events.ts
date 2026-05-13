@@ -37,6 +37,7 @@ function mapRow(row: Record<string, unknown>, profile?: Record<string, unknown>)
     description: (row.description as string) ?? undefined,
     address: (row.exact_address as string) ?? undefined,
     category: (row.category as string) ?? undefined,
+    hostUserId: (row.host_user_id as string) ?? undefined,
     host: profile
       ? {
           name: (profile.username as string) ?? '@host',

@@ -112,9 +112,8 @@ export default function EventDetailScreen() {
 
   async function submitHostRating() {
     if (!user || !event?.host || hostRating === 0) return;
-    const hostUserId = (event as unknown as { host_user_id?: string }).host_user_id;
-    if (!hostUserId) return;
-    await submitRating(event.id, user.id, hostUserId, 'host', hostRating);
+    if (!event.hostUserId) return;
+    await submitRating(event.id, user.id, event.hostUserId, 'host', hostRating);
     setHostRated(true);
     setShowRateHost(false);
     showToastMsg('Rating submitted!');
@@ -292,8 +291,7 @@ export default function EventDetailScreen() {
             <Pressable
               style={s.row}
               onPress={() => {
-                const hostId = (event as unknown as { host_user_id?: string }).host_user_id;
-                if (hostId) router.push(`/host/${hostId}`);
+                if (event.hostUserId) router.push(`/host/${event.hostUserId}`);
               }}
             >
               <View style={s.rowLeft}>

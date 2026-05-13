@@ -1,24 +1,45 @@
 import { useState } from 'react';
+import {
+  Target,
+  ShieldCheck,
+  Users,
+  MessageSquare,
+  Star,
+  CheckCircle,
+  MapPin,
+  Calendar,
+  Zap,
+} from 'lucide-react';
 import './index.css';
+
+const BASE = 'https://storage.googleapis.com/msgsndr/sxFrugNVp2enL9pfGarC/media';
 
 const FEATURES = [
   {
-    icon: '🎯',
+    Icon: Target,
+    color: 'text-[#3882F6]',
+    bg: 'bg-[#EFF6FF]',
     title: 'Curated for you',
     desc: 'Tell us what you love and we surface events that actually match your vibe — not just whatever is nearby.',
   },
   {
-    icon: '🔒',
+    Icon: ShieldCheck,
+    color: 'text-[#059669]',
+    bg: 'bg-[#ECFDF5]',
     title: 'Real people only',
     desc: 'Every host is verified. Every attendee is vouched. No bots, no flakes, no cringe.',
   },
   {
-    icon: '✨',
+    Icon: Users,
+    color: 'text-[#7C3AED]',
+    bg: 'bg-[#F5F3FF]',
     title: 'Small groups, big memories',
     desc: 'Intimate sizes — 2 to 50 people — so you actually meet someone, not just stand in a crowd.',
   },
   {
-    icon: '💬',
+    Icon: MessageSquare,
+    color: 'text-[#EA580C]',
+    bg: 'bg-[#FFF7ED]',
     title: 'Group chat included',
     desc: 'Connect with your crew before and after. Relive the night. Plan the next one.',
   },
@@ -51,21 +72,34 @@ const TESTIMONIALS = [
   {
     name: 'Sofia R.',
     city: 'Toronto',
-    avatar: '🧡',
+    initials: 'SR',
+    color: 'bg-[#EFF6FF] text-[#3882F6]',
     text: "I moved to a new city and was terrified of not knowing anyone. GoDo had me at a wine night within three days. I've been back every week.",
+    stars: 5,
   },
   {
     name: 'Marcus T.',
     city: 'New York',
-    avatar: '💙',
+    initials: 'MT',
+    color: 'bg-[#F5F3FF] text-[#7C3AED]',
     text: 'Finally an app that gets it. Small groups, vetted hosts, no awkward huge parties. Just genuinely fun evenings.',
+    stars: 5,
   },
   {
     name: 'Priya M.',
     city: 'Miami',
-    avatar: '💚',
+    initials: 'PM',
+    color: 'bg-[#ECFDF5] text-[#059669]',
     text: "I've hosted six events on GoDo. Every attendee shows up excited. The quality of connection is unlike anything else.",
+    stars: 5,
   },
+];
+
+const STATS = [
+  { value: '2,400+', label: 'Events hosted' },
+  { value: '18K+', label: 'Active members' },
+  { value: '12', label: 'Cities' },
+  { value: '4.9', label: 'Avg host rating' },
 ];
 
 function NavBar() {
@@ -97,8 +131,8 @@ function HeroSection() {
       </div>
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center">
         <div className="inline-flex items-center gap-2 bg-[#E8F0FE] text-[#3882F6] text-sm font-semibold px-4 py-2 rounded-full mb-8">
-          <span>🎉</span>
-          <span>Now open in Toronto, New York & Miami</span>
+          <Zap size={14} strokeWidth={2.5} />
+          <span>Now open in Toronto, New York &amp; Miami</span>
         </div>
         <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-gray-900 leading-tight tracking-tight mb-6">
           Find your people.<br />
@@ -135,7 +169,7 @@ function PhoneMockup() {
         <div className="absolute -bottom-8 -right-20 w-40 h-40 bg-purple-100 rounded-3xl -rotate-12 blur-sm hidden lg:block" />
         <div className="relative bg-gray-900 rounded-[44px] p-3 shadow-2xl shadow-gray-400/40">
           <div className="absolute top-5 left-1/2 -translate-x-1/2 w-24 h-6 bg-gray-800 rounded-full z-10" />
-          <div className="bg-white rounded-[36px] overflow-hidden" style={{ aspectRatio: '9/19.5' }}>
+          <div className="bg-[#F8F9FA] rounded-[36px] overflow-hidden" style={{ aspectRatio: '9/19.5' }}>
             <AppScreen />
           </div>
         </div>
@@ -146,18 +180,20 @@ function PhoneMockup() {
 
 function AppScreen() {
   return (
-    <div className="h-full bg-white flex flex-col text-left overflow-hidden">
-      <div className="flex items-center justify-between px-4 pt-10 pb-3">
+    <div className="h-full flex flex-col text-left overflow-hidden">
+      {/* Header */}
+      <div className="bg-white flex items-center justify-between px-4 pt-10 pb-3 border-b border-gray-100">
         <span className="text-xl font-black text-[#3882F6]">GoDo</span>
-        <div className="w-7 h-7 bg-red-500 rounded-full flex items-center justify-center">
-          <span className="text-white text-[9px] font-bold">3</span>
+        <div className="w-6 h-6 bg-[#3882F6] rounded-full flex items-center justify-center">
+          <span className="text-white text-[8px] font-bold">3</span>
         </div>
       </div>
-      <div className="flex gap-2 px-4 pb-3">
+      {/* Filter pills */}
+      <div className="bg-white flex gap-2 px-3 py-2 border-b border-gray-100">
         {['All', 'Tonight', 'Weekend'].map((f, i) => (
           <span
             key={f}
-            className={`text-[10px] font-semibold px-3 py-1 rounded-full ${
+            className={`text-[9px] font-semibold px-2.5 py-1 rounded-full ${
               i === 0 ? 'bg-[#3882F6] text-white' : 'bg-gray-100 text-gray-600'
             }`}
           >
@@ -165,34 +201,47 @@ function AppScreen() {
           </span>
         ))}
       </div>
-      <div className="flex-1 px-4 space-y-3 overflow-hidden">
+      {/* Cards */}
+      <div className="flex-1 px-3 py-3 space-y-3 overflow-hidden">
         <MockCard
-          title="Wine Night 🍷"
-          label="Tonight at 7 PM"
+          img={`${BASE}/6923e595a470b3044fe0ba57.png`}
+          title="Wine Night at the Loft"
+          label="Tonight · 7 PM"
           loc="Downtown"
           price="Free"
           attending={4}
           spots={2}
-          color="bg-rose-100"
         />
         <MockCard
-          title="Morning Hike 🥾"
-          label="Sat at 8 AM"
+          img={`${BASE}/6923e7602e932b0c9c969020.png`}
+          title="Morning Hike — Don Valley"
+          label="Sat · 8 AM"
           loc="High Park"
           price="$5"
           attending={8}
           spots={4}
-          color="bg-green-100"
         />
       </div>
-      <div className="pb-4 px-4 pt-2 flex justify-around items-center border-t border-gray-100">
-        {['🏠', '🗺️', '＋', '💬', '👤'].map((icon, i) => (
-          <span
-            key={i}
-            className={`text-base ${i === 2 ? 'bg-[#3882F6] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm' : ''}`}
-          >
-            {icon}
-          </span>
+      {/* Tab bar */}
+      <div className="bg-white pb-3 px-3 pt-2 flex justify-around items-center border-t border-gray-100">
+        {[
+          { icon: '⌂', active: true },
+          { icon: '◎', active: false },
+          { icon: '+', plus: true },
+          { icon: '⊞', active: false },
+          { icon: '○', active: false },
+        ].map((t, i) => (
+          <div key={i} className="flex flex-col items-center">
+            <div
+              className={`${
+                t.plus
+                  ? 'bg-[#3882F6] text-white w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shadow-md shadow-blue-300'
+                  : `text-${t.active ? '[#3882F6]' : 'gray-400'} text-base`
+              }`}
+            >
+              {t.icon}
+            </div>
+          </div>
         ))}
       </div>
     </div>
@@ -200,38 +249,63 @@ function AppScreen() {
 }
 
 function MockCard({
+  img,
   title,
   label,
   loc,
   price,
   attending,
   spots,
-  color,
 }: {
+  img: string;
   title: string;
   label: string;
   loc: string;
   price: string;
   attending: number;
   spots: number;
-  color: string;
 }) {
   return (
-    <div className="rounded-b-2xl overflow-hidden shadow-md shadow-gray-200/60">
-      <div className={`${color} w-full h-28`} />
-      <div className="bg-white px-3 pt-2 pb-3">
+    <div className="rounded-2xl overflow-hidden shadow-sm shadow-gray-200/80 bg-white">
+      <img src={img} alt={title} className="w-full h-24 object-cover" />
+      <div className="px-3 pt-2 pb-2.5">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] text-gray-500">{attending} attending • {spots} spots left</span>
-          <span className="text-[10px] font-semibold text-gray-800 bg-gray-100 px-2 py-0.5 rounded-full">{price}</span>
+          <span className="text-[8px] text-gray-400">{attending} attending · {spots} spots left</span>
+          <span
+            className={`text-[8px] font-semibold px-1.5 py-0.5 rounded-full ${
+              price === 'Free' ? 'bg-green-50 text-green-700' : 'bg-[#EFF6FF] text-[#3882F6]'
+            }`}
+          >
+            {price}
+          </span>
         </div>
-        <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">{label}</span>
-        <p className="text-[12px] font-bold text-gray-900 mt-1 mb-1">{title}</p>
-        <p className="text-[10px] text-gray-500 mb-2">📍 {loc}</p>
-        <button className="w-full bg-[#3882F6] text-white text-[10px] font-semibold py-1.5 rounded-lg">
-          Check it Out
-        </button>
+        <p className="text-[11px] font-bold text-gray-900 mb-0.5">{title}</p>
+        <div className="flex items-center gap-1">
+          <MapPin size={8} className="text-gray-400" strokeWidth={2} />
+          <span className="text-[8px] text-gray-400">{loc}</span>
+          <span className="text-[8px] text-gray-300 mx-0.5">·</span>
+          <Calendar size={8} className="text-gray-400" strokeWidth={2} />
+          <span className="text-[8px] text-gray-400">{label}</span>
+        </div>
       </div>
     </div>
+  );
+}
+
+function StatsSection() {
+  return (
+    <section className="py-16 bg-[#3882F6]">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 text-center text-white">
+          {STATS.map(s => (
+            <div key={s.label}>
+              <p className="text-4xl font-black mb-1">{s.value}</p>
+              <p className="text-blue-200 text-sm font-medium">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -248,7 +322,9 @@ function FeaturesSection() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {FEATURES.map((f) => (
             <div key={f.title} className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-              <div className="text-3xl mb-4">{f.icon}</div>
+              <div className={`w-12 h-12 ${f.bg} rounded-xl flex items-center justify-center mb-4`}>
+                <f.Icon size={22} className={f.color} strokeWidth={2} />
+              </div>
               <h3 className="text-base font-bold text-gray-900 mb-2">{f.title}</h3>
               <p className="text-sm text-gray-500 leading-relaxed">{f.desc}</p>
             </div>
@@ -297,10 +373,15 @@ function TestimonialsSection() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {TESTIMONIALS.map((t) => (
             <div key={t.name} className="bg-white rounded-2xl p-7 shadow-sm">
+              <div className="flex gap-0.5 mb-4">
+                {Array.from({ length: t.stars }).map((_, i) => (
+                  <Star key={i} size={14} className="text-amber-400 fill-amber-400" strokeWidth={0} />
+                ))}
+              </div>
               <p className="text-gray-700 text-sm leading-relaxed mb-6">"{t.text}"</p>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-xl">
-                  {t.avatar}
+                <div className={`w-10 h-10 ${t.color} rounded-full flex items-center justify-center text-sm font-bold`}>
+                  {t.initials}
                 </div>
                 <div>
                   <p className="text-sm font-bold text-gray-900">{t.name}</p>
@@ -340,10 +421,10 @@ function WaitlistSection() {
           Join thousands of people on the waitlist. We'll let you know the moment GoDo opens in your city.
         </p>
         {submitted ? (
-          <div className="bg-white/20 backdrop-blur rounded-2xl p-8">
-            <div className="text-5xl mb-4">🎉</div>
+          <div className="bg-white/20 backdrop-blur rounded-2xl p-8 flex flex-col items-center gap-4">
+            <CheckCircle size={56} className="text-white" strokeWidth={1.5} />
             <p className="text-white text-xl font-bold">You're on the list!</p>
-            <p className="text-blue-100 mt-2 text-sm">We'll reach out when GoDo launches near you.</p>
+            <p className="text-blue-100 text-sm">We'll reach out when GoDo launches near you.</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
@@ -381,7 +462,7 @@ function Footer() {
             <a href="#" className="hover:text-white transition-colors">Terms</a>
             <a href="mailto:hello@godo.app" className="hover:text-white transition-colors">Contact</a>
           </div>
-          <p className="text-xs text-gray-600">© 2025 GoDo. All rights reserved.</p>
+          <p className="text-xs text-gray-600">© 2026 GoDo. All rights reserved.</p>
         </div>
       </div>
     </footer>
@@ -393,6 +474,7 @@ export default function App() {
     <div className="font-sans">
       <NavBar />
       <HeroSection />
+      <StatsSection />
       <FeaturesSection />
       <HowItWorksSection />
       <TestimonialsSection />

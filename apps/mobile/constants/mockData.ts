@@ -29,6 +29,7 @@ export interface FeedEvent {
   address?: string;
   category?: string;
   emoji?: string;
+  hostUserId?: string;
 }
 
 // All Bold concept assets
