@@ -10,13 +10,13 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bell } from 'lucide-react-native';
+import { Bell, Compass } from 'lucide-react-native';
 import { router } from 'expo-router';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { Colors } from '../../constants/colors';
 import { FeedCard } from '../../components/feed/FeedCard';
 import { type FeedEvent } from '../../constants/mockData';
-import { fetchFeed, toggleEventLike, isEventLiked } from '../../lib/events';
+import { fetchFeed, toggleEventLike } from '../../lib/events';
 import { subscribeToFeed } from '../../lib/comments';
 import { useAuthStore } from '../../stores/authStore';
 
@@ -129,6 +129,9 @@ export default function HomeScreen() {
             </View>
           ) : (
             <View style={styles.empty}>
+              <View style={styles.emptyIcon}>
+                <Compass size={36} color={Colors.primary} strokeWidth={1.5} />
+              </View>
               <Text style={styles.emptyTitle}>Nothing here yet</Text>
               <Text style={styles.emptySub}>Try a different filter or check back soon.</Text>
             </View>
@@ -187,6 +190,7 @@ const styles = StyleSheet.create({
   pillTextActive: { color: '#FFF' },
   list: { padding: 16, paddingBottom: 32 },
   empty: { marginTop: 80, alignItems: 'center', gap: 8 },
+  emptyIcon: { width: 72, height: 72, borderRadius: 20, backgroundColor: Colors.primaryLight, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
   emptyTitle: {
     fontSize: 18,
     fontFamily: 'Inter_600SemiBold',

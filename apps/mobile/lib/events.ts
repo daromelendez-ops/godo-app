@@ -529,8 +529,13 @@ export async function updateProfile(userId: string, params: {
   if (params.fullName !== undefined) updates.username = params.fullName;
   if (params.avatarUrl !== undefined) updates.avatar_url = params.avatarUrl;
   const { error } = await supabase.from('profiles').update(updates).eq('id', userId);
-  if (!error && params.fullName !== undefined) {
-    await supabase.auth.updateUser({ data: { full_name: params.fullName } });
+  if (!error) {
+    const metaUpdates: Record<string, string> = {};
+    if (params.fullName !== undefined) metaUpdates.full_name = params.fullName;
+    if (params.avatarUrl !== undefined) metaUpdates.avatar_url = params.avatarUrl;
+    if (Object.keys(metaUpdates).length > 0) {
+      await supabase.auth.updateUser({ data: metaUpdates });
+    }
   }
   return !error;
 }

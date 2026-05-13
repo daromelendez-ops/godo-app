@@ -21,7 +21,7 @@ import { updateProfile } from '../../lib/events';
 import { pickMedia, takePhoto, uploadMedia } from '../../lib/storage';
 
 export default function EditProfileScreen() {
-  const { user } = useAuthStore();
+  const { user, initialize } = useAuthStore();
 
   const initialName = user?.user_metadata?.full_name ?? '';
   const initialAvatar = user?.user_metadata?.avatar_url as string | undefined;
@@ -65,6 +65,7 @@ export default function EditProfileScreen() {
 
     setSaving(false);
     if (ok) {
+      await initialize();
       router.back();
     } else {
       Alert.alert('Error', 'Could not save changes. Try again.');
