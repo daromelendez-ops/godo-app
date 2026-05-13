@@ -36,6 +36,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="event/[id]" />
         <Stack.Screen name="host/[id]" />
+        <Stack.Screen name="profile/edit" />
       </Stack>
     </>
   );

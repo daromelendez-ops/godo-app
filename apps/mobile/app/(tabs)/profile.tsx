@@ -18,11 +18,12 @@ import {
   Star,
   CalendarCheck,
   Users,
+  Bookmark,
 } from 'lucide-react-native';
 import { Colors } from '../../constants/colors';
 import { useAuthStore } from '../../stores/authStore';
 import { router } from 'expo-router';
-import { getHostStats, fetchUserUpcomingEvents } from '../../lib/events';
+import { getHostStats, fetchUserUpcomingEvents, fetchSavedEvents } from '../../lib/events';
 
 function Avatar({ name }: { name: string }) {
   const initials = name
@@ -88,6 +89,7 @@ export default function ProfileScreen() {
     score: number; avgRating: number; ratingCount: number; eventsHosted: number;
   } | null>(null);
   const [upcomingEvents, setUpcomingEvents] = useState<Awaited<ReturnType<typeof fetchUserUpcomingEvents>>>([]);
+  const [savedEvents, setSavedEvents] = useState<Awaited<ReturnType<typeof fetchSavedEvents>>>([]);
 
   const name = user?.user_metadata?.full_name ?? 'GoDo User';
   const email = user?.email ?? '';
@@ -97,6 +99,7 @@ export default function ProfileScreen() {
     if (user) {
       getHostStats(user.id).then(setHostStats);
       fetchUserUpcomingEvents(user.id).then(setUpcomingEvents);
+      fetchSavedEvents(user.id).then(setSavedEvents);
     }
   }, [user]);
 
@@ -134,7 +137,7 @@ export default function ProfileScreen() {
           <Text style={styles.name}>{name}</Text>
           <Text style={styles.email}>{email}</Text>
           <Text style={styles.memberSince}>Member since {memberYear}</Text>
-          <Pressable style={styles.editBtn}>
+          <Pressable style={styles.editBtn} onPress={() => router.push('/profile/edit')}>
             <Text style={styles.editBtnText}>Edit Profile</Text>
           </Pressable>
         </View>
@@ -172,6 +175,32 @@ export default function ProfileScreen() {
               >
                 <View style={styles.eventEmojiBubble}>
                   <Text style={styles.eventEmojiText}>{ev.emoji}</Text>
+                </View>
+                <View style={styles.eventInfo}>
+                  <Text style={styles.eventTitle}>{ev.title}</Text>
+                  <Text style={styles.eventMeta}>
+                    {ev.neighborhood ?? ''}
+                    {ev.startsAt ? ` · ${new Date(ev.startsAt).toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' })}` : ''}
+                  </Text>
+                </View>
+                <ChevronRight size={16} color={Colors.textLight} strokeWidth={2} />
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        {/* Saved events */}
+        {savedEvents.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Saved Events</Text>
+            {savedEvents.map((ev) => (
+              <Pressable
+                key={ev.id}
+                style={({ pressed }) => [styles.eventRow, pressed && styles.rowPressed]}
+                onPress={() => router.push(`/event/${ev.id}`)}
+              >
+                <View style={[styles.eventEmojiBubble, { backgroundColor: '#EFF6FF' }]}>
+                  <Bookmark size={18} color="#3882F6" strokeWidth={2} fill="#3882F6" />
                 </View>
                 <View style={styles.eventInfo}>
                   <Text style={styles.eventTitle}>{ev.title}</Text>

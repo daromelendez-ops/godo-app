@@ -492,6 +492,44 @@ export async function fetchHostedEvents(userId: string): Promise<{ id: string; t
     id: r.id as string,
     title: r.title as string,
     startsAt: (r.starts_at as string) ?? null,
-    emoji: (r.emoji as string) ?? '🎉',
+    emoji: (r.emoji as string) ?? '✨',
   }));
+}
+
+// Fetch events saved/bookmarked by a user
+export async function fetchSavedEvents(userId: string): Promise<{ id: string; title: string; startsAt: string | null; neighborhood: string | null; category?: string }[]> {
+  const { data } = await supabase
+    .from('saved_items')
+    .select('item_id, events!item_id (id, title, starts_at, approx_location, event_categories (name))')
+    .eq('user_id', userId)
+    .eq('item_type', 'event')
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  return (data ?? []).map((row: Record<string, unknown>) => {
+    const e = row.events as Record<string, unknown> | null;
+    const cat = (e?.event_categories as Record<string, unknown> | null)?.name as string | undefined;
+    return {
+      id: (e?.id as string) ?? '',
+      title: (e?.title as string) ?? '',
+      startsAt: (e?.starts_at as string) ?? null,
+      neighborhood: (e?.approx_location as string) ?? null,
+      category: cat,
+    };
+  }).filter(e => e.id);
+}
+
+// Update user profile (name + avatar)
+export async function updateProfile(userId: string, params: {
+  fullName?: string;
+  avatarUrl?: string;
+}): Promise<boolean> {
+  const updates: Record<string, string> = {};
+  if (params.fullName !== undefined) updates.username = params.fullName;
+  if (params.avatarUrl !== undefined) updates.avatar_url = params.avatarUrl;
+  const { error } = await supabase.from('profiles').update(updates).eq('id', userId);
+  if (!error && params.fullName !== undefined) {
+    await supabase.auth.updateUser({ data: { full_name: params.fullName } });
+  }
+  return !error;
 }
