@@ -8,8 +8,10 @@ import {
   Image,
   Animated,
   Dimensions,
-  Modal,
   Platform,
+  TextInput,
+  KeyboardAvoidingView,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -20,13 +22,25 @@ import {
   Bookmark,
   Share2,
   Check,
+  Send,
+  ImagePlus,
 } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { Colors } from '../../constants/colors';
 import { MAP_THUMBNAIL, type FeedEvent } from '../../constants/mockData';
 import { Confetti } from '../../components/ui/Confetti';
 import { fetchEvent, requestToJoin, cancelJoinRequest, getAttendeeState } from '../../lib/events';
 import { useAuthStore } from '../../stores/authStore';
+import {
+  fetchComments,
+  postComment,
+  subscribeToComments,
+  type EventComment,
+} from '../../lib/comments';
+import { pickMedia } from '../../lib/storage';
+import { isEventLiked, toggleEventLike, submitRating } from '../../lib/events';
+import { uploadEventPhoto, getEventPhotos, type EventPhoto } from '../../lib/photos';
 
 const { width: W } = Dimensions.get('window');
 const MEDIA_H = Math.round(W * 0.72);
@@ -46,12 +60,25 @@ export default function EventDetailScreen() {
   const [toastVisible, setToastVisible] = useState(false);
   const [attendeeCount, setAttendeeCount] = useState(0);
 
+  const [comments, setComments] = useState<EventComment[]>([]);
+  const [commentText, setCommentText] = useState('');
+  const [postingComment, setPostingComment] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
+  const [photos, setPhotos] = useState<EventPhoto[]>([]);
+  const [showRateHost, setShowRateHost] = useState(false);
+  const [hostRating, setHostRating] = useState(0);
+  const [hostRated, setHostRated] = useState(false);
+  const commentChannelRef = useRef<RealtimeChannel | null>(null);
+
   useEffect(() => {
     if (!id) return;
     fetchEvent(id).then(ev => {
       if (ev) {
         setEvent(ev);
         setAttendeeCount(ev.attending ?? 0);
+        setLikesCount((ev as unknown as { likes_count?: number }).likes_count ?? 0);
       }
     });
     if (user) {
@@ -60,7 +87,53 @@ export default function EventDetailScreen() {
         else if (state === 'pending_approval') setJoinState('pending');
       });
     }
+    fetchComments(id).then(setComments);
+    getEventPhotos(id).then(setPhotos);
+    commentChannelRef.current = subscribeToComments(id, (c) =>
+      setComments(prev => [...prev, c]),
+    );
+    if (user) {
+      isEventLiked(id, user.id).then(setLiked);
+    }
+    return () => { commentChannelRef.current?.unsubscribe(); };
   }, [id, user]);
+
+  async function handlePostComment() {
+    if (!commentText.trim() || !user || !event) return;
+    setPostingComment(true);
+    const body = commentText.trim();
+    setCommentText('');
+    await postComment(event.id, user.id, body);
+    setPostingComment(false);
+  }
+
+  async function submitHostRating() {
+    if (!user || !event?.host || hostRating === 0) return;
+    const hostUserId = (event as unknown as { host_user_id?: string }).host_user_id;
+    if (!hostUserId) return;
+    await submitRating(event.id, user.id, hostUserId, 'host', hostRating);
+    setHostRated(true);
+    setShowRateHost(false);
+    showToastMsg('Rating submitted!');
+  }
+
+  async function handleLike() {
+    if (!user || !event) return;
+    const nowLiked = await toggleEventLike(event.id, user.id);
+    setLiked(nowLiked);
+    setLikesCount(c => nowLiked ? c + 1 : Math.max(0, c - 1));
+  }
+
+  async function handleUploadPhoto() {
+    if (!user || !event) return;
+    const asset = await pickMedia();
+    if (!asset) return;
+    setUploadingPhoto(true);
+    const photo = await uploadEventPhoto(asset, event.id, user.id);
+    if (photo) setPhotos(prev => [photo, ...prev]);
+    setUploadingPhoto(false);
+    showToastMsg('Photo added!');
+  }
 
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const modalAnim = useRef(new Animated.Value(0)).current;
@@ -158,7 +231,7 @@ export default function EventDetailScreen() {
         </Pressable>
       </View>
 
-      <ScrollView style={s.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView style={s.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 220 }}>
         {/* Media */}
         <View style={s.mediaWrap}>
           <Image source={{ uri: event.mediaUrl }} style={s.media} resizeMode="cover" />
@@ -232,12 +305,22 @@ export default function EventDetailScreen() {
 
           {/* Attending + actions */}
           <View style={s.attendRow}>
-            <Text style={s.attendText}>
-              {attendeeCount} attending · {event.spotsLeft} spots left
-            </Text>
+            <View>
+              <Text style={s.attendText}>
+                {attendeeCount} attending · {event.spotsLeft} spots left
+              </Text>
+              {likesCount > 0 && (
+                <Text style={s.likesText}>{likesCount} {likesCount === 1 ? 'like' : 'likes'}</Text>
+              )}
+            </View>
             <View style={s.actionIcons}>
-              <Pressable hitSlop={10}>
-                <Heart size={20} color={Colors.textSecondary} strokeWidth={2} />
+              <Pressable hitSlop={10} onPress={handleLike}>
+                <Heart
+                  size={20}
+                  color={liked ? Colors.danger : Colors.textSecondary}
+                  fill={liked ? Colors.danger : 'transparent'}
+                  strokeWidth={2}
+                />
               </Pressable>
               <Pressable hitSlop={10}>
                 <Bookmark size={20} color={Colors.textSecondary} strokeWidth={2} />
@@ -247,8 +330,90 @@ export default function EventDetailScreen() {
               </Pressable>
             </View>
           </View>
+
+          {/* Photo gallery */}
+          {photos.length > 0 && (
+            <>
+              <View style={s.divider} />
+              <View style={s.gallerySection}>
+                <Text style={s.commentsTitle}>Photos</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
+                  <View style={s.galleryRow}>
+                    {photos.map(p => (
+                      <Image key={p.id} source={{ uri: p.public_url }} style={s.galleryImg} resizeMode="cover" />
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            </>
+          )}
+
+          <View style={s.divider} />
+
+          {/* Comments */}
+          <View style={s.commentsSection}>
+            <View style={s.commentsHeader}>
+              <Text style={s.commentsTitle}>Comments</Text>
+              {joinState === 'confirmed' && (
+                <Pressable onPress={handleUploadPhoto} style={s.photoBtn} hitSlop={8} disabled={uploadingPhoto}>
+                  {uploadingPhoto
+                    ? <ActivityIndicator size="small" color={Colors.primary} />
+                    : <ImagePlus size={20} color={Colors.primary} strokeWidth={2} />
+                  }
+                </Pressable>
+              )}
+            </View>
+
+            {comments.length === 0 && (
+              <Text style={s.noComments}>No comments yet. Be the first!</Text>
+            )}
+
+            {comments.map(c => (
+              <View key={c.id} style={s.commentRow}>
+                <View style={s.commentAvatar}>
+                  <Text style={s.commentAvatarText}>
+                    {(c.profiles?.username ?? 'U')[0].toUpperCase()}
+                  </Text>
+                </View>
+                <View style={s.commentBubble}>
+                  <Text style={s.commentUsername}>{c.profiles?.username ?? 'User'}</Text>
+                  <Text style={s.commentBody}>{c.body}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
         </View>
       </ScrollView>
+
+      {/* Comment input */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 120 : 0}
+        style={s.commentInputWrap}
+      >
+        <View style={s.commentInputRow}>
+          <TextInput
+            style={s.commentInput}
+            placeholder="Write a comment…"
+            placeholderTextColor={Colors.textLight}
+            value={commentText}
+            onChangeText={setCommentText}
+            returnKeyType="send"
+            onSubmitEditing={handlePostComment}
+            blurOnSubmit={false}
+          />
+          <Pressable
+            style={[s.sendBtn, (!commentText.trim() || postingComment) && s.sendBtnDisabled]}
+            onPress={handlePostComment}
+            disabled={!commentText.trim() || postingComment}
+          >
+            {postingComment
+              ? <ActivityIndicator size="small" color="#FFF" />
+              : <Send size={18} color="#FFF" strokeWidth={2} />
+            }
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
 
       {/* Sticky CTA */}
       <View style={s.stickyBar}>
@@ -272,11 +437,18 @@ export default function EventDetailScreen() {
           </Text>
         </Pressable>
         {(joinState === 'confirmed' || joinState === 'pending') && (
-          <Pressable style={s.cancelLink} onPress={handleCancelPress}>
-            <Text style={s.cancelLinkText}>
-              {joinState === 'pending' ? 'Cancel Request' : 'Cancel'}
-            </Text>
-          </Pressable>
+          <View style={s.cancelRow}>
+            <Pressable style={s.cancelLink} onPress={handleCancelPress}>
+              <Text style={s.cancelLinkText}>
+                {joinState === 'pending' ? 'Cancel Request' : 'Cancel'}
+              </Text>
+            </Pressable>
+            {joinState === 'confirmed' && !hostRated && (
+              <Pressable style={s.rateHostLink} onPress={() => setShowRateHost(true)}>
+                <Text style={s.rateHostLinkText}>⭐ Rate Host</Text>
+              </Pressable>
+            )}
+          </View>
         )}
       </View>
 
@@ -347,6 +519,36 @@ export default function EventDetailScreen() {
         <Animated.View style={[s.toast, { opacity: toastAnim }]}>
           <Text style={s.toastText}>{toast}</Text>
         </Animated.View>
+      )}
+
+      {/* Rate Host Modal */}
+      {showRateHost && (
+        <View style={s.backdrop} pointerEvents="box-none">
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setShowRateHost(false)} />
+          <View style={s.modal}>
+            <Text style={s.modalTitle}>Rate the Host</Text>
+            <Text style={s.modalBody}>How was {event?.host?.name ?? 'the host'}?</Text>
+            <View style={s.starRow}>
+              {[1,2,3,4,5].map(n => (
+                <Pressable key={n} hitSlop={8} onPress={() => setHostRating(n)}>
+                  <Text style={{ fontSize: 36 }}>{n <= hostRating ? '★' : '☆'}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <View style={s.modalBtns}>
+              <Pressable style={s.modalBtnSecondary} onPress={() => setShowRateHost(false)}>
+                <Text style={s.modalBtnSecondaryText}>Skip</Text>
+              </Pressable>
+              <Pressable
+                style={[s.modalBtnPrimary, hostRating === 0 && { opacity: 0.4 }]}
+                onPress={submitHostRating}
+                disabled={hostRating === 0}
+              >
+                <Text style={s.modalBtnPrimaryText}>Submit</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
       )}
 
       {/* Confetti */}
@@ -503,8 +705,12 @@ const s = StyleSheet.create({
   },
   ctaTextIn: { color: Colors.primary },
   ctaTextPending: { color: Colors.textLight },
+  cancelRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 20 },
   cancelLink: { alignItems: 'center', paddingVertical: 4 },
   cancelLinkText: { fontSize: 14, fontFamily: 'Inter_400Regular', color: Colors.textLight },
+  rateHostLink: { alignItems: 'center', paddingVertical: 4 },
+  rateHostLinkText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.primary },
+  starRow: { flexDirection: 'row', gap: 6, justifyContent: 'center' },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.45)',
@@ -581,4 +787,96 @@ const s = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
     color: Colors.textSecondary,
   },
+  likesText: { fontSize: 12, fontFamily: 'Inter_400Regular', color: Colors.textLight, marginTop: 2 },
+  gallerySection: { paddingTop: 16, paddingBottom: 8 },
+  galleryRow: { flexDirection: 'row', gap: 8 },
+  galleryImg: { width: 100, height: 100, borderRadius: 10, backgroundColor: Colors.border },
+  commentsSection: { paddingTop: 16, paddingBottom: 8, gap: 12 },
+  commentsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  commentsTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter_600SemiBold',
+    color: Colors.textPrimary,
+  },
+  photoBtn: { padding: 4 },
+  noComments: {
+    fontSize: 13,
+    fontFamily: 'Inter_400Regular',
+    color: Colors.textLight,
+    textAlign: 'center',
+    paddingVertical: 8,
+  },
+  commentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  commentAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  commentAvatarText: {
+    fontSize: 13,
+    fontFamily: 'Inter_600SemiBold',
+    color: Colors.primary,
+  },
+  commentBubble: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 2,
+  },
+  commentUsername: {
+    fontSize: 12,
+    fontFamily: 'Inter_600SemiBold',
+    color: Colors.textPrimary,
+  },
+  commentBody: {
+    fontSize: 13,
+    fontFamily: 'Inter_400Regular',
+    color: Colors.textSecondary,
+    lineHeight: 18,
+  },
+  commentInputWrap: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 140 : 120,
+    left: 0,
+    right: 0,
+    backgroundColor: Colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  commentInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  commentInput: {
+    flex: 1,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 14,
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
+    color: Colors.textPrimary,
+  },
+  sendBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendBtnDisabled: { opacity: 0.4 },
 });

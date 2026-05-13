@@ -122,6 +122,8 @@ export async function createEvent(params: {
   neighborhood: string;
   address: string;
   startsAt: Date;
+  coverPhotoUrl?: string;
+  coverType?: 'image' | 'video';
 }): Promise<string | null> {
   // Resolve category_id
   const { data: catRow } = await supabase
@@ -146,6 +148,8 @@ export async function createEvent(params: {
       approx_location: params.neighborhood,
       exact_address: params.address,
       starts_at: params.startsAt.toISOString(),
+      cover_photo_url: params.coverPhotoUrl ?? null,
+      cover_type: params.coverType ?? 'image',
       status: 'published',
       published_at: new Date().toISOString(),
     })
@@ -192,4 +196,165 @@ export async function getAttendeeState(
     .single();
 
   return (data?.state as 'pending_approval' | 'confirmed' | 'canceled' | 'not_approved') ?? null;
+}
+
+// Host: get pending join requests for an event
+export async function getPendingAttendees(eventId: string): Promise<{
+  userId: string;
+  username: string | null;
+  avatarUrl: string | null;
+  requestedAt: string;
+}[]> {
+  const { data } = await supabase
+    .from('event_attendees')
+    .select('user_id, created_at, profiles!user_id (username, avatar_url)')
+    .eq('event_id', eventId)
+    .eq('state', 'pending_approval')
+    .order('created_at', { ascending: true });
+
+  return (data ?? []).map((row: Record<string, unknown>) => {
+    const p = row.profiles as Record<string, unknown> | null;
+    return {
+      userId: row.user_id as string,
+      username: (p?.username as string) ?? null,
+      avatarUrl: (p?.avatar_url as string) ?? null,
+      requestedAt: row.created_at as string,
+    };
+  });
+}
+
+// Host: get confirmed attendees for an event (for rating flow)
+export async function getConfirmedAttendees(eventId: string): Promise<{
+  userId: string;
+  username: string | null;
+  avatarUrl: string | null;
+}[]> {
+  const { data } = await supabase
+    .from('event_attendees')
+    .select('user_id, profiles!user_id (username, avatar_url)')
+    .eq('event_id', eventId)
+    .eq('state', 'confirmed');
+
+  return (data ?? []).map((row: Record<string, unknown>) => {
+    const p = row.profiles as Record<string, unknown> | null;
+    return {
+      userId: row.user_id as string,
+      username: (p?.username as string) ?? null,
+      avatarUrl: (p?.avatar_url as string) ?? null,
+    };
+  });
+}
+
+// Host: approve a join request
+export async function approveAttendee(eventId: string, userId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('event_attendees')
+    .update({ state: 'confirmed' })
+    .match({ event_id: eventId, user_id: userId });
+  return !error;
+}
+
+// Host: deny a join request
+export async function denyAttendee(eventId: string, userId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('event_attendees')
+    .update({ state: 'not_approved' })
+    .match({ event_id: eventId, user_id: userId });
+  return !error;
+}
+
+// Toggle like on an event (returns new liked state)
+export async function toggleEventLike(eventId: string, userId: string): Promise<boolean> {
+  const { data: existing } = await supabase
+    .from('liked_items')
+    .select('id')
+    .match({ user_id: userId, item_type: 'event', item_id: eventId })
+    .maybeSingle();
+
+  if (existing) {
+    await supabase
+      .from('liked_items')
+      .delete()
+      .match({ user_id: userId, item_type: 'event', item_id: eventId });
+    return false;
+  } else {
+    await supabase
+      .from('liked_items')
+      .insert({ user_id: userId, item_type: 'event', item_id: eventId });
+    return true;
+  }
+}
+
+// Check if current user liked an event
+export async function isEventLiked(eventId: string, userId: string): Promise<boolean> {
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
+  if (!isUUID) return false;
+  const { data } = await supabase
+    .from('liked_items')
+    .select('id')
+    .match({ user_id: userId, item_type: 'event', item_id: eventId })
+    .maybeSingle();
+  return !!data;
+}
+
+// Submit a rating (host rates attendee, or attendee rates host)
+export async function submitRating(
+  eventId: string,
+  raterUserId: string,
+  ratedUserId: string,
+  role: 'host' | 'attendee',
+  stars: number,
+): Promise<boolean> {
+  const { error } = await supabase.from('ratings').upsert(
+    {
+      event_id: eventId,
+      rater_user_id: raterUserId,
+      rated_user_id: ratedUserId,
+      rated_role: role,
+      overall_stars: stars,
+    },
+    { onConflict: 'event_id,rater_user_id,rated_user_id' },
+  );
+  return !error;
+}
+
+// Get host profile stats (score, avg_rating, rating_count)
+export async function getHostStats(userId: string): Promise<{
+  score: number;
+  avgRating: number;
+  ratingCount: number;
+  eventsHosted: number;
+} | null> {
+  const { data } = await supabase
+    .from('profiles')
+    .select('score, avg_rating, rating_count, events_hosted')
+    .eq('id', userId)
+    .single();
+
+  if (!data) return null;
+  const d = data as Record<string, unknown>;
+  return {
+    score: (d.score as number) ?? 0,
+    avgRating: parseFloat((d.avg_rating as string) ?? '0'),
+    ratingCount: (d.rating_count as number) ?? 0,
+    eventsHosted: (d.events_hosted as number) ?? 0,
+  };
+}
+
+// Fetch events hosted by a user (for host dashboard)
+export async function fetchHostedEvents(userId: string): Promise<{ id: string; title: string; startsAt: string | null; emoji: string }[]> {
+  const { data } = await supabase
+    .from('events')
+    .select('id, title, starts_at, emoji')
+    .eq('host_user_id', userId)
+    .eq('status', 'published')
+    .order('starts_at', { ascending: false })
+    .limit(20);
+
+  return (data ?? []).map((r: Record<string, unknown>) => ({
+    id: r.id as string,
+    title: r.title as string,
+    startsAt: (r.starts_at as string) ?? null,
+    emoji: (r.emoji as string) ?? '🎉',
+  }));
 }

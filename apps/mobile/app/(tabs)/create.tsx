@@ -11,13 +11,17 @@ import {
   Switch,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { X, ChevronRight } from 'lucide-react-native';
+import { X, ChevronRight, Camera, ImagePlus } from 'lucide-react-native';
+import type { ImagePickerAsset } from 'expo-image-picker';
 import { Colors } from '../../constants/colors';
 import { useAuthStore } from '../../stores/authStore';
 import { createEvent } from '../../lib/events';
+import { pickMedia, takePhoto, uploadMedia } from '../../lib/storage';
 
 const CATEGORIES = [
   { id: 'social', label: 'Social', emoji: '🎉' },
@@ -52,6 +56,7 @@ export default function CreateScreen() {
   const [neighborhood, setNeighborhood] = useState('');
   const [dateText, setDateText] = useState('');
   const [publishing, setPublishing] = useState(false);
+  const [coverAsset, setCoverAsset] = useState<ImagePickerAsset | null>(null);
 
   const selectedType = EVENT_TYPES.find(t => t.id === eventType);
   const minSpots = selectedType?.range[0] ?? 2;
@@ -75,6 +80,18 @@ export default function CreateScreen() {
       return;
     }
     setPublishing(true);
+
+    // Upload cover media if selected
+    let coverUrl: string | undefined;
+    let coverType: 'image' | 'video' = 'image';
+    if (coverAsset) {
+      const uploaded = await uploadMedia(coverAsset, 'event-covers', user.id);
+      if (uploaded) {
+        coverUrl = uploaded.publicUrl;
+        coverType = coverAsset.type === 'video' ? 'video' : 'image';
+      }
+    }
+
     const categoryLabel = CATEGORIES.find(c => c.id === category)?.label ?? category;
     const eventEmoji = CATEGORIES.find(c => c.id === category)?.emoji ?? '🎉';
     const id = await createEvent({
@@ -91,6 +108,8 @@ export default function CreateScreen() {
       neighborhood: neighborhood.trim(),
       address: address.trim(),
       startsAt: parsed,
+      coverPhotoUrl: coverUrl,
+      coverType,
     });
     setPublishing(false);
     if (id) {
@@ -121,6 +140,53 @@ export default function CreateScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Cover photo / video */}
+          <View style={s.section}>
+            <Text style={s.label}>Cover photo or video</Text>
+            {coverAsset ? (
+              <View style={s.coverPreview}>
+                {coverAsset.type === 'video' ? (
+                  <Video
+                    source={{ uri: coverAsset.uri }}
+                    style={s.coverMedia}
+                    resizeMode={ResizeMode.COVER}
+                    isLooping
+                    isMuted
+                    shouldPlay
+                  />
+                ) : (
+                  <Image source={{ uri: coverAsset.uri }} style={s.coverMedia} resizeMode="cover" />
+                )}
+                <Pressable style={s.coverRemove} onPress={() => setCoverAsset(null)}>
+                  <X size={16} color="#FFF" strokeWidth={2.5} />
+                </Pressable>
+              </View>
+            ) : (
+              <View style={s.coverButtons}>
+                <Pressable
+                  style={s.coverBtn}
+                  onPress={async () => {
+                    const asset = await pickMedia({ allowsVideo: true, aspect: [1, 1] });
+                    if (asset) setCoverAsset(asset);
+                  }}
+                >
+                  <ImagePlus size={20} color={Colors.primary} strokeWidth={2} />
+                  <Text style={s.coverBtnText}>Choose from library</Text>
+                </Pressable>
+                <Pressable
+                  style={s.coverBtn}
+                  onPress={async () => {
+                    const asset = await takePhoto();
+                    if (asset) setCoverAsset(asset);
+                  }}
+                >
+                  <Camera size={20} color={Colors.primary} strokeWidth={2} />
+                  <Text style={s.coverBtnText}>Take a photo</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+
           {/* Event name */}
           <View style={s.section}>
             <Text style={s.label}>Event name *</Text>
@@ -477,5 +543,44 @@ const s = StyleSheet.create({
     fontSize: 17,
     fontFamily: 'Inter_600SemiBold',
     color: '#FFF',
+  },
+  coverPreview: {
+    width: '100%',
+    height: 180,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  coverMedia: {
+    width: '100%',
+    height: '100%',
+  },
+  coverRemove: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  coverButtons: {
+    gap: 10,
+  },
+  coverBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: Colors.primaryLight,
+  },
+  coverBtnText: {
+    fontSize: 14,
+    fontFamily: 'Inter_500Medium',
+    color: Colors.primary,
   },
 });

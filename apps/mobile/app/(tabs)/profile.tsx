@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -22,6 +23,7 @@ import { Colors } from '../../constants/colors';
 import { useAuthStore } from '../../stores/authStore';
 import { router } from 'expo-router';
 import { MOCK_EVENTS } from '../../constants/mockData';
+import { getHostStats } from '../../lib/events';
 
 const UPCOMING = MOCK_EVENTS.filter((e) => e.type === 'upcoming').slice(0, 2);
 
@@ -85,10 +87,17 @@ function SettingsRow({
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuthStore();
+  const [hostStats, setHostStats] = useState<{
+    score: number; avgRating: number; ratingCount: number; eventsHosted: number;
+  } | null>(null);
 
   const name = user?.user_metadata?.full_name ?? 'GoDo User';
   const email = user?.email ?? '';
   const memberYear = new Date(user?.created_at ?? Date.now()).getFullYear();
+
+  useEffect(() => {
+    if (user) getHostStats(user.id).then(setHostStats);
+  }, [user]);
 
   async function handleSignOut() {
     Alert.alert('Sign out', 'Are you sure you want to sign out?', [
@@ -132,21 +141,21 @@ export default function ProfileScreen() {
         {/* Stats */}
         <View style={styles.statsRow}>
           <StatBox
-            value="12"
-            label="Attended"
-            icon={<CalendarCheck size={18} color={Colors.primary} strokeWidth={2} />}
-          />
-          <View style={styles.statDivider} />
-          <StatBox
-            value="3"
+            value={hostStats ? String(hostStats.eventsHosted) : '—'}
             label="Hosted"
             icon={<Users size={18} color={Colors.primary} strokeWidth={2} />}
           />
           <View style={styles.statDivider} />
           <StatBox
-            value="4.9"
+            value={hostStats && hostStats.avgRating > 0 ? hostStats.avgRating.toFixed(1) : '—'}
             label="Rating"
             icon={<Star size={18} color={Colors.primary} strokeWidth={2} />}
+          />
+          <View style={styles.statDivider} />
+          <StatBox
+            value={hostStats ? String(hostStats.score) : '—'}
+            label="Score"
+            icon={<CalendarCheck size={18} color={Colors.primary} strokeWidth={2} />}
           />
         </View>
 

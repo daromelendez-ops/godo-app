@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,10 +11,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bell } from 'lucide-react-native';
 import { router } from 'expo-router';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { Colors } from '../../constants/colors';
 import { FeedCard } from '../../components/feed/FeedCard';
 import { type FeedEvent } from '../../constants/mockData';
 import { fetchFeed } from '../../lib/events';
+import { subscribeToFeed } from '../../lib/comments';
 
 const FILTERS = ['All', 'Tonight', 'Tomorrow', 'This Weekend'];
 
@@ -22,13 +24,19 @@ export default function HomeScreen() {
   const [activeFilter, setActiveFilter] = useState('All');
   const [refreshing, setRefreshing] = useState(false);
   const [events, setEvents] = useState<FeedEvent[]>([]);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   async function loadFeed() {
     const data = await fetchFeed();
     setEvents(data);
   }
 
-  useEffect(() => { loadFeed(); }, []);
+  useEffect(() => {
+    loadFeed();
+    // Realtime: refresh feed when any event is published/updated
+    channelRef.current = subscribeToFeed(loadFeed);
+    return () => { channelRef.current?.unsubscribe(); };
+  }, []);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
