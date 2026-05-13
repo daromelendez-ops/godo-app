@@ -396,19 +396,40 @@ function TestimonialsSection() {
   );
 }
 
+const SUPABASE_URL = 'https://omisebobfavjqlewpkuj.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_UwqDJYWi7b6MBs49qpa7eQ_WS5wHj_W';
+
 function WaitlistSection() {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!email) return;
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setSubmitted(true);
-    }, 800);
+    setError('');
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/waitlist`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON,
+          'Authorization': `Bearer ${SUPABASE_ANON}`,
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify({ email }),
+      });
+      if (res.ok || res.status === 409) {
+        setSubmitted(true);
+      } else {
+        setError('Something went wrong. Try again.');
+      }
+    } catch {
+      setError('Something went wrong. Try again.');
+    }
+    setLoading(false);
   };
 
   return (
@@ -445,6 +466,7 @@ function WaitlistSection() {
             </button>
           </form>
         )}
+        {error && <p className="text-red-300 text-sm mt-3">{error}</p>}
         <p className="text-blue-200 text-xs mt-4">No spam. Unsubscribe anytime.</p>
       </div>
     </section>
