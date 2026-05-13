@@ -36,7 +36,7 @@ function mapRow(row: Record<string, unknown>, profile?: Record<string, unknown>)
     emoji: (row.emoji as string) ?? '🎉',
     description: (row.description as string) ?? undefined,
     address: (row.exact_address as string) ?? undefined,
-    category: undefined,
+    category: (row.category as string) ?? undefined,
     host: profile
       ? {
           name: (profile.username as string) ?? '@host',
@@ -47,16 +47,22 @@ function mapRow(row: Record<string, unknown>, profile?: Record<string, unknown>)
   };
 }
 
+const EVENT_SELECT = `
+  *,
+  profiles!host_user_id (id, username, avatar_url, member_since),
+  event_categories (name)
+`;
+
+function mapRowWithCategory(row: Record<string, unknown>, profile?: Record<string, unknown>): FeedEvent {
+  const cat = (row.event_categories as Record<string, unknown> | null)?.name as string | undefined;
+  return { ...mapRow(row, profile), category: cat };
+}
+
 // Fetch published events. Falls back to MOCK_EVENTS if DB is empty.
 export async function fetchFeed(): Promise<FeedEvent[]> {
   const { data, error } = await supabase
     .from('events')
-    .select(`
-      *,
-      profiles!host_user_id (
-        id, username, avatar_url, member_since
-      )
-    `)
+    .select(EVENT_SELECT)
     .eq('status', 'published')
     .order('starts_at', { ascending: true })
     .limit(50);
@@ -66,8 +72,53 @@ export async function fetchFeed(): Promise<FeedEvent[]> {
   }
 
   return data.map((row) =>
-    mapRow(row as Record<string, unknown>, (row.profiles ?? undefined) as Record<string, unknown> | undefined),
+    mapRowWithCategory(row as Record<string, unknown>, (row.profiles ?? undefined) as Record<string, unknown> | undefined),
   );
+}
+
+// Fetch events near a location using the nearby_events RPC
+export async function fetchNearbyEvents(lat: number, lng: number, radiusKm = 10): Promise<FeedEvent[]> {
+  const { data, error } = await supabase.rpc('nearby_events', {
+    user_lat: lat,
+    user_lng: lng,
+    radius_km: radiusKm,
+  });
+
+  if (error || !data || data.length === 0) {
+    return MOCK_EVENTS.filter(e => e.type === 'upcoming');
+  }
+
+  return (data as Record<string, unknown>[]).map((row) => {
+    const priceCents = (row.price_cents as number) ?? 0;
+    const isPaid = row.is_paid as boolean;
+    const startsAt = row.starts_at ? new Date(row.starts_at as string) : null;
+    let timeLabel = 'Upcoming';
+    if (startsAt) {
+      const diffH = (startsAt.getTime() - Date.now()) / 3_600_000;
+      if (diffH < 12) timeLabel = 'Tonight';
+      else if (diffH < 36) timeLabel = 'Tomorrow';
+      else if (diffH < 168) timeLabel = 'This Weekend';
+      else timeLabel = startsAt.toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+    return {
+      id: row.id as string,
+      type: 'upcoming' as const,
+      username: '@host',
+      avatarUrl: '',
+      mediaUrl: (row.cover_photo_url as string) ?? '',
+      mediaType: ((row.cover_type as string) === 'video' ? 'video' : 'image') as 'image' | 'video',
+      eventTitle: row.title as string,
+      caption: '',
+      timeLabel,
+      neighborhood: (row.approx_location as string) ?? undefined,
+      attending: (row.confirmed_count as number) ?? 0,
+      capacity: (row.max_group_size as number) ?? 6,
+      spotsLeft: ((row.max_group_size as number) ?? 6) - ((row.confirmed_count as number) ?? 0),
+      price: isPaid ? `$${(priceCents / 100).toFixed(0)}` : 'Free',
+      emoji: (row.emoji as string) ?? '✨',
+      category: undefined,
+    } as FeedEvent;
+  });
 }
 
 // Fetch a single event by ID (UUID from Supabase or string from MOCK_EVENTS)
@@ -77,12 +128,12 @@ export async function fetchEvent(id: string): Promise<FeedEvent | null> {
   if (isUUID) {
     const { data, error } = await supabase
       .from('events')
-      .select(`*, profiles!host_user_id (id, username, avatar_url, member_since)`)
+      .select(EVENT_SELECT)
       .eq('id', id)
       .single();
 
     if (!error && data) {
-      return mapRow(data as Record<string, unknown>, (data.profiles ?? undefined) as Record<string, unknown> | undefined);
+      return mapRowWithCategory(data as Record<string, unknown>, (data.profiles ?? undefined) as Record<string, unknown> | undefined);
     }
   }
 

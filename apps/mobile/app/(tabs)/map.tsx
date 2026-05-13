@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,13 +11,17 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MapPin, Search, Navigation, ChevronRight, Sparkles } from 'lucide-react-native';
 import { router } from 'expo-router';
+import * as Location from 'expo-location';
 import { Colors } from '../../constants/colors';
-import { MOCK_EVENTS, MAP_THUMBNAIL, type FeedEvent } from '../../constants/mockData';
+import { MAP_THUMBNAIL, type FeedEvent } from '../../constants/mockData';
 import { CategoryIcon } from '../../components/ui/CategoryIcon';
+import { fetchNearbyEvents } from '../../lib/events';
 
 const { width: W } = Dimensions.get('window');
 
-const NEARBY = MOCK_EVENTS.filter((e) => e.type === 'upcoming');
+// Toronto downtown as default coords
+const DEFAULT_LAT = 43.6532;
+const DEFAULT_LNG = -79.3832;
 
 const CATEGORIES = [
   { label: 'All' },
@@ -116,11 +120,35 @@ function NearbyCard({
 export default function MapScreen() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [activePin, setActivePin] = useState<string | null>(null);
+  const [nearby, setNearby] = useState<FeedEvent[]>([]);
+  const [locationLabel, setLocationLabel] = useState('Toronto');
+
+  useEffect(() => {
+    async function load() {
+      let lat = DEFAULT_LAT;
+      let lng = DEFAULT_LNG;
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+          lat = pos.coords.latitude;
+          lng = pos.coords.longitude;
+          const [place] = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+          if (place?.city) setLocationLabel(place.city);
+        }
+      } catch {
+        // permission denied or unavailable — use defaults
+      }
+      const events = await fetchNearbyEvents(lat, lng);
+      setNearby(events);
+    }
+    load();
+  }, []);
 
   const filtered =
     activeCategory === 'All'
-      ? NEARBY
-      : NEARBY.filter((e) => e.category === activeCategory || e.category?.includes(activeCategory));
+      ? nearby
+      : nearby.filter((e) => e.category === activeCategory || e.category?.includes(activeCategory));
 
   function handlePin(id: string) {
     setActivePin(id);
@@ -134,7 +162,7 @@ export default function MapScreen() {
         <Text style={styles.headerTitle}>Nearby</Text>
         <View style={styles.locationRow}>
           <Navigation size={14} color={Colors.primary} strokeWidth={2.5} />
-          <Text style={styles.locationText}>Downtown, Toronto</Text>
+          <Text style={styles.locationText}>{locationLabel}</Text>
         </View>
       </View>
 
@@ -156,16 +184,12 @@ export default function MapScreen() {
           <View style={styles.youDot}>
             <View style={styles.youDotInner} />
           </View>
-          {/* Event pins */}
-          {PIN_POSITIONS.map((pin) => {
-            const event = MOCK_EVENTS.find((e) => e.id === pin.id);
-            if (!event) return null;
+          {/* Event pins — first 5 events placed at fixed visual positions */}
+          {nearby.slice(0, PIN_POSITIONS.length).map((event, i) => {
+            const pin = PIN_POSITIONS[i];
             return (
-              <View
-                key={pin.id}
-                style={[styles.pinAbs, { top: pin.top, left: pin.left }]}
-              >
-                <MapPin_ event={event} onPress={() => handlePin(pin.id)} />
+              <View key={event.id} style={[styles.pinAbs, { top: pin.top, left: pin.left }]}>
+                <MapPin_ event={event} onPress={() => handlePin(event.id)} />
               </View>
             );
           })}
