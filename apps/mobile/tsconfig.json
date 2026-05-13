@@ -1,0 +1,25 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "react-native": ["../../node_modules/react-native"],
+      "react-native/*": ["../../node_modules/react-native/*"],
+      "@supabase/supabase-js": ["../../node_modules/@supabase/supabase-js"],
+      "expo-router": ["../../node_modules/expo-router"],
+      "expo-router/*": ["../../node_modules/expo-router/*"],
+      "zustand": ["../../node_modules/zustand"],
+      "zustand/*": ["../../node_modules/zustand/*"],
+      "lucide-react-native": ["../../node_modules/lucide-react-native"],
+      "date-fns": ["../../node_modules/date-fns"],
+      "date-fns/*": ["../../node_modules/date-fns/*"]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.d.ts",
+    "expo-env.d.ts"
+  ]
+}
