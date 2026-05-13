@@ -96,13 +96,13 @@ export default function InboxScreen() {
 
     const [reqs, photos, confirmed] = await Promise.all([
       Promise.all(events.map(e => getPendingAttendees(e.id).then(atts =>
-        atts.map(a => ({ ...a, eventId: e.id, eventTitle: `${e.emoji} ${e.title}` }))
+        atts.map(a => ({ ...a, eventId: e.id, eventTitle: e.title }))
       ))).then(arr => arr.flat()),
       Promise.all(events.map(e => getPendingPhotos(e.id).then(ps =>
-        ps.map(p => ({ ...p, eventTitle: `${e.emoji} ${e.title}` }))
+        ps.map(p => ({ ...p, eventTitle: e.title }))
       ))).then(arr => arr.flat()),
       Promise.all(events.map(e => getConfirmedAttendees(e.id).then(atts =>
-        atts.map(a => ({ ...a, eventId: e.id, eventTitle: `${e.emoji} ${e.title}`, rated: false, stars: 0 }))
+        atts.map(a => ({ ...a, eventId: e.id, eventTitle: e.title, rated: false, stars: 0 }))
       ))).then(arr => arr.flat()),
     ]);
 

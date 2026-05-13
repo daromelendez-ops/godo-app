@@ -15,15 +15,18 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { Colors } from '../../constants/colors';
 import { FeedCard } from '../../components/feed/FeedCard';
 import { type FeedEvent } from '../../constants/mockData';
-import { fetchFeed } from '../../lib/events';
+import { fetchFeed, toggleEventLike, isEventLiked } from '../../lib/events';
 import { subscribeToFeed } from '../../lib/comments';
+import { useAuthStore } from '../../stores/authStore';
 
 const FILTERS = ['All', 'Tonight', 'Tomorrow', 'This Weekend'];
 
 export default function HomeScreen() {
+  const { user } = useAuthStore();
   const [activeFilter, setActiveFilter] = useState('All');
   const [refreshing, setRefreshing] = useState(false);
   const [events, setEvents] = useState<FeedEvent[]>([]);
+  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   async function loadFeed() {
@@ -33,10 +36,19 @@ export default function HomeScreen() {
 
   useEffect(() => {
     loadFeed();
-    // Realtime: refresh feed when any event is published/updated
     channelRef.current = subscribeToFeed(loadFeed);
     return () => { channelRef.current?.unsubscribe(); };
   }, []);
+
+  async function handleLike(eventId: string) {
+    if (!user) return;
+    const nowLiked = await toggleEventLike(eventId, user.id);
+    setLikedIds(prev => {
+      const next = new Set(prev);
+      nowLiked ? next.add(eventId) : next.delete(eventId);
+      return next;
+    });
+  }
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -90,7 +102,12 @@ export default function HomeScreen() {
         data={filtered}
         keyExtractor={e => e.id}
         renderItem={({ item }) => (
-          <FeedCard event={item as FeedEvent} onPress={() => router.push(`/event/${(item as FeedEvent).id}`)} />
+          <FeedCard
+            event={item as FeedEvent}
+            onPress={() => router.push(`/event/${(item as FeedEvent).id}`)}
+            liked={likedIds.has((item as FeedEvent).id)}
+            onLike={() => handleLike((item as FeedEvent).id)}
+          />
         )}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}

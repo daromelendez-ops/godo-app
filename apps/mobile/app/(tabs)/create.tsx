@@ -17,6 +17,7 @@ import { Video, ResizeMode } from 'expo-av';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { X, ChevronRight, Camera, ImagePlus } from 'lucide-react-native';
+import { CategoryIcon } from '../../components/ui/CategoryIcon';
 import type { ImagePickerAsset } from 'expo-image-picker';
 import { Colors } from '../../constants/colors';
 import { useAuthStore } from '../../stores/authStore';
@@ -24,16 +25,16 @@ import { createEvent } from '../../lib/events';
 import { pickMedia, takePhoto, uploadMedia } from '../../lib/storage';
 
 const CATEGORIES = [
-  { id: 'social', label: 'Social', emoji: '🎉' },
-  { id: 'fitness', label: 'Fitness', emoji: '🏋️' },
-  { id: 'outdoors', label: 'Outdoors', emoji: '🌿' },
-  { id: 'food_drink', label: 'Food & Drink', emoji: '🍕' },
-  { id: 'arts', label: 'Arts', emoji: '🎨' },
-  { id: 'music', label: 'Music', emoji: '🎵' },
-  { id: 'games', label: 'Games', emoji: '🎮' },
-  { id: 'wellness', label: 'Wellness', emoji: '🧘' },
-  { id: 'sports', label: 'Sports', emoji: '⚽' },
-  { id: 'learning', label: 'Learning', emoji: '📚' },
+  { id: 'social', label: 'Social' },
+  { id: 'fitness', label: 'Fitness' },
+  { id: 'outdoors', label: 'Outdoors' },
+  { id: 'food_drink', label: 'Food & Drink' },
+  { id: 'arts', label: 'Arts' },
+  { id: 'music', label: 'Music' },
+  { id: 'games', label: 'Games' },
+  { id: 'wellness', label: 'Wellness' },
+  { id: 'sports', label: 'Sports' },
+  { id: 'learning', label: 'Learning' },
 ];
 
 const EVENT_TYPES = [
@@ -93,12 +94,11 @@ export default function CreateScreen() {
     }
 
     const categoryLabel = CATEGORIES.find(c => c.id === category)?.label ?? category;
-    const eventEmoji = CATEGORIES.find(c => c.id === category)?.emoji ?? '🎉';
     const id = await createEvent({
       hostUserId: user.id,
       title: title.trim(),
       description: description.trim(),
-      emoji: eventEmoji,
+      emoji: '✨',
       categoryName: categoryLabel,
       eventType,
       maxGroupSize: spotsCount,
@@ -211,9 +211,9 @@ export default function CreateScreen() {
                   style={[s.chip, category === c.id && s.chipActive]}
                   onPress={() => setCategory(c.id)}
                 >
-                  <Text style={s.chipEmoji}>{c.emoji}</Text>
+                  <CategoryIcon category={c.label} size="sm" />
                   <Text style={[s.chipText, category === c.id && s.chipTextActive]}>
-                    {c.label}
+                    {c.label === 'Food & Drink' ? 'Food' : c.label}
                   </Text>
                 </Pressable>
               ))}
@@ -445,7 +445,6 @@ const s = StyleSheet.create({
     borderColor: Colors.border,
   },
   chipActive: { backgroundColor: Colors.primaryLight, borderColor: Colors.primary },
-  chipEmoji: { fontSize: 14 },
   chipText: {
     fontSize: 13,
     fontFamily: 'Inter_500Medium',

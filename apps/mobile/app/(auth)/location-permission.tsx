@@ -1,11 +1,37 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { useState } from 'react';
 import { router } from 'expo-router';
+import * as Location from 'expo-location';
 import { MapPin } from 'lucide-react-native';
 import { Colors } from '../../constants/colors';
+import { supabase } from '../../lib/supabase';
 
 export default function LocationPermissionScreen() {
-  function handleAllow() {
-    router.replace('/(auth)/interests');
+  const [loading, setLoading] = useState(false);
+
+  async function handleAllow() {
+    setLoading(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        const [geo] = await Location.reverseGeocodeAsync({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        });
+        const city = geo?.city ?? geo?.subregion ?? null;
+        await supabase.rpc('update_user_location', {
+          lat: loc.coords.latitude,
+          lng: loc.coords.longitude,
+          city_name: city,
+        });
+      }
+    } catch (_) {
+      // permission denied or GPS unavailable — continue anyway
+    } finally {
+      setLoading(false);
+      router.replace('/(auth)/interests');
+    }
   }
 
   function handleSkip() {
@@ -25,8 +51,11 @@ export default function LocationPermissionScreen() {
       </View>
 
       <View style={styles.actions}>
-        <Pressable style={styles.primaryBtn} onPress={handleAllow}>
-          <Text style={styles.primaryText}>Allow Location Access</Text>
+        <Pressable style={styles.primaryBtn} onPress={handleAllow} disabled={loading}>
+          {loading
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={styles.primaryText}>Allow Location Access</Text>
+          }
         </Pressable>
         <Pressable style={styles.skipBtn} onPress={handleSkip}>
           <Text style={styles.skipText}>Not now</Text>

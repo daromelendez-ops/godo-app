@@ -2,23 +2,25 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Modal } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Sparkles, PartyPopper } from 'lucide-react-native';
 import { Colors } from '../../constants/colors';
 import { useAuthStore } from '../../stores/authStore';
 import { fetchInterestIds, saveUserInterests } from '../../lib/events';
+import { CategoryIcon } from '../../components/ui/CategoryIcon';
 
 const INTERESTS = [
-  { id: 'fitness', label: 'Fitness', emoji: '🏋️' },
-  { id: 'social', label: 'Social', emoji: '🎉' },
-  { id: 'games', label: 'Games', emoji: '🎮' },
-  { id: 'outdoors', label: 'Outdoors', emoji: '🌿' },
-  { id: 'food_drink', label: 'Food & Drink', emoji: '🍕' },
-  { id: 'arts', label: 'Arts', emoji: '🎨' },
-  { id: 'music', label: 'Music', emoji: '🎵' },
-  { id: 'sports', label: 'Sports', emoji: '⚽' },
-  { id: 'wellness', label: 'Wellness', emoji: '🧘' },
-  { id: 'learning', label: 'Learning', emoji: '📚' },
-  { id: 'tech', label: 'Tech', emoji: '💻' },
-  { id: 'other', label: 'Other', emoji: '✨' },
+  { id: 'fitness', label: 'Fitness' },
+  { id: 'social', label: 'Social' },
+  { id: 'games', label: 'Games' },
+  { id: 'outdoors', label: 'Outdoors' },
+  { id: 'food_drink', label: 'Food & Drink' },
+  { id: 'arts', label: 'Arts' },
+  { id: 'music', label: 'Music' },
+  { id: 'sports', label: 'Sports' },
+  { id: 'wellness', label: 'Wellness' },
+  { id: 'learning', label: 'Learning' },
+  { id: 'tech', label: 'Tech' },
+  { id: 'other', label: 'Other' },
 ];
 
 const MIN_INTERESTS = 3;
@@ -77,7 +79,10 @@ export default function InterestsScreen() {
             style={[styles.chip, selected.includes(item.id) && styles.chipSelected]}
             onPress={() => toggle(item.id)}
           >
-            <Text style={styles.chipEmoji}>{item.emoji}</Text>
+            {item.id === 'other'
+              ? <Sparkles size={16} color={selected.includes(item.id) ? Colors.primary : '#6B7280'} strokeWidth={2} />
+              : <CategoryIcon category={item.label} size="sm" />
+            }
             <Text
               style={[
                 styles.chipLabel,
@@ -115,7 +120,7 @@ export default function InterestsScreen() {
       <Modal visible={showModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.completionModal}>
-            <Text style={styles.completionEmoji}>🥳</Text>
+            <PartyPopper size={64} color="#FFF" strokeWidth={1.5} />
             <Text style={styles.completionTitle}>You're all set!</Text>
             <Text style={styles.completionBody}>
               Your feed is ready. Discover something fun happening near you — tonight.
@@ -172,7 +177,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryLight,
     borderColor: Colors.primary,
   },
-  chipEmoji: { fontSize: 18 },
   chipLabel: {
     fontSize: 15,
     fontFamily: 'Inter_500Medium',
@@ -217,7 +221,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 16,
   },
-  completionEmoji: { fontSize: 64, marginBottom: 8 },
   completionTitle: {
     fontSize: 32,
     fontFamily: 'Inter_700Bold',

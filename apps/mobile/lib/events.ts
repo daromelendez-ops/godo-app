@@ -341,6 +341,92 @@ export async function getHostStats(userId: string): Promise<{
   };
 }
 
+// Toggle save/bookmark on an event (returns new saved state)
+export async function toggleEventSave(eventId: string, userId: string): Promise<boolean> {
+  const { data: existing } = await supabase
+    .from('saved_items')
+    .select('id')
+    .match({ user_id: userId, item_type: 'event', item_id: eventId })
+    .maybeSingle();
+
+  if (existing) {
+    await supabase
+      .from('saved_items')
+      .delete()
+      .match({ user_id: userId, item_type: 'event', item_id: eventId });
+    return false;
+  } else {
+    await supabase
+      .from('saved_items')
+      .insert({ user_id: userId, item_type: 'event', item_id: eventId });
+    return true;
+  }
+}
+
+// Check if current user saved an event
+export async function isEventSaved(eventId: string, userId: string): Promise<boolean> {
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
+  if (!isUUID) return false;
+  const { data } = await supabase
+    .from('saved_items')
+    .select('id')
+    .match({ user_id: userId, item_type: 'event', item_id: eventId })
+    .maybeSingle();
+  return !!data;
+}
+
+// Fetch upcoming events a user has confirmed attendance for
+export async function fetchUserUpcomingEvents(userId: string): Promise<{ id: string; title: string; startsAt: string | null; emoji: string; neighborhood: string | null }[]> {
+  const { data } = await supabase
+    .from('event_attendees')
+    .select('events!event_id (id, title, starts_at, emoji, approx_location)')
+    .eq('user_id', userId)
+    .eq('state', 'confirmed')
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  return (data ?? []).map((row: Record<string, unknown>) => {
+    const e = row.events as Record<string, unknown> | null;
+    return {
+      id: (e?.id as string) ?? '',
+      title: (e?.title as string) ?? '',
+      startsAt: (e?.starts_at as string) ?? null,
+      emoji: (e?.emoji as string) ?? '🎉',
+      neighborhood: (e?.approx_location as string) ?? null,
+    };
+  }).filter(e => e.id);
+}
+
+// Fetch host public profile
+export async function fetchHostProfile(hostId: string): Promise<{
+  id: string;
+  username: string | null;
+  avatarUrl: string | null;
+  score: number;
+  avgRating: number;
+  ratingCount: number;
+  eventsHosted: number;
+  memberSince: string;
+} | null> {
+  const { data } = await supabase
+    .from('profiles')
+    .select('id, username, avatar_url, score, avg_rating, rating_count, events_hosted, member_since')
+    .eq('id', hostId)
+    .single();
+  if (!data) return null;
+  const d = data as Record<string, unknown>;
+  return {
+    id: d.id as string,
+    username: (d.username as string) ?? null,
+    avatarUrl: (d.avatar_url as string) ?? null,
+    score: (d.score as number) ?? 0,
+    avgRating: parseFloat((d.avg_rating as string) ?? '0'),
+    ratingCount: (d.rating_count as number) ?? 0,
+    eventsHosted: (d.events_hosted as number) ?? 0,
+    memberSince: new Date((d.member_since as string) ?? Date.now()).getFullYear().toString(),
+  };
+}
+
 // Fetch events hosted by a user (for host dashboard)
 export async function fetchHostedEvents(userId: string): Promise<{ id: string; title: string; startsAt: string | null; emoji: string }[]> {
   const { data } = await supabase

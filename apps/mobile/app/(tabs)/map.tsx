@@ -6,26 +6,28 @@ import {
   Pressable,
   ScrollView,
   Image,
-  FlatList,
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MapPin, Search, Navigation, ChevronRight } from 'lucide-react-native';
+import { MapPin, Search, Navigation, ChevronRight, Sparkles } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { MOCK_EVENTS, MAP_THUMBNAIL, type FeedEvent } from '../../constants/mockData';
+import { CategoryIcon } from '../../components/ui/CategoryIcon';
 
 const { width: W } = Dimensions.get('window');
 
 const NEARBY = MOCK_EVENTS.filter((e) => e.type === 'upcoming');
 
 const CATEGORIES = [
-  { label: 'All', emoji: '✨' },
-  { label: 'Social', emoji: '🍷' },
-  { label: 'Outdoors', emoji: '🏞️' },
-  { label: 'Arts', emoji: '🎨' },
-  { label: 'Food', emoji: '🍝' },
-  { label: 'Games', emoji: '🎲' },
+  { label: 'All' },
+  { label: 'Social' },
+  { label: 'Outdoors' },
+  { label: 'Arts' },
+  { label: 'Food & Drink' },
+  { label: 'Games' },
+  { label: 'Wellness' },
+  { label: 'Fitness' },
 ];
 
 const DISTANCES: Record<string, string> = {
@@ -37,7 +39,7 @@ const DISTANCES: Record<string, string> = {
   '10': '2.6 km',
 };
 
-const PIN_POSITIONS = [
+const PIN_POSITIONS: Array<{ id: string; top: `${number}%`; left: `${number}%` }> = [
   { id: '1', top: '38%', left: '52%' },
   { id: '3', top: '55%', left: '25%' },
   { id: '5', top: '25%', left: '38%' },
@@ -46,15 +48,14 @@ const PIN_POSITIONS = [
 ];
 
 function MapPin_({ event, onPress }: { event: FeedEvent; onPress: () => void }) {
+  const isPaid = event.price && event.price !== 'Free';
   return (
-    <Pressable
-      style={styles.pinContainer}
-      onPress={onPress}
-      hitSlop={8}
-    >
+    <Pressable style={styles.pinContainer} onPress={onPress} hitSlop={8}>
       <View style={styles.pinBubble}>
-        <Text style={styles.pinEmoji}>{event.emoji}</Text>
-        <Text style={styles.pinPrice}>{event.price ?? 'Free'}</Text>
+        <CategoryIcon category={event.category} size="sm" />
+        <Text style={[styles.pinPrice, isPaid && styles.pinPricePaid]}>
+          {event.price ?? 'Free'}
+        </Text>
       </View>
       <View style={styles.pinTail} />
     </Pressable>
@@ -178,23 +179,24 @@ export default function MapScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.catScroll}
         >
-          {CATEGORIES.map((c) => (
-            <Pressable
-              key={c.label}
-              style={[styles.catPill, activeCategory === c.label && styles.catPillActive]}
-              onPress={() => setActiveCategory(c.label)}
-            >
-              <Text style={styles.catEmoji}>{c.emoji}</Text>
-              <Text
-                style={[
-                  styles.catText,
-                  activeCategory === c.label && styles.catTextActive,
-                ]}
+          {CATEGORIES.map((c) => {
+            const isActive = activeCategory === c.label;
+            return (
+              <Pressable
+                key={c.label}
+                style={[styles.catPill, isActive && styles.catPillActive]}
+                onPress={() => setActiveCategory(c.label)}
               >
-                {c.label}
-              </Text>
-            </Pressable>
-          ))}
+                {c.label === 'All'
+                  ? <Sparkles size={13} color={isActive ? '#FFF' : Colors.textSecondary} strokeWidth={2} />
+                  : <CategoryIcon category={c.label} size="sm" />
+                }
+                <Text style={[styles.catText, isActive && styles.catTextActive]}>
+                  {c.label === 'Food & Drink' ? 'Food' : c.label}
+                </Text>
+              </Pressable>
+            );
+          })}
         </ScrollView>
 
         {/* Nearby list */}
@@ -342,14 +344,12 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
-  pinEmoji: {
-    fontSize: 12,
-  },
   pinPrice: {
     fontSize: 11,
     fontFamily: 'Inter_600SemiBold',
     color: Colors.textPrimary,
   },
+  pinPricePaid: { color: Colors.primary },
   pinTail: {
     width: 0,
     height: 0,

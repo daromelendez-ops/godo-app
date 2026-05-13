@@ -22,10 +22,7 @@ import {
 import { Colors } from '../../constants/colors';
 import { useAuthStore } from '../../stores/authStore';
 import { router } from 'expo-router';
-import { MOCK_EVENTS } from '../../constants/mockData';
-import { getHostStats } from '../../lib/events';
-
-const UPCOMING = MOCK_EVENTS.filter((e) => e.type === 'upcoming').slice(0, 2);
+import { getHostStats, fetchUserUpcomingEvents } from '../../lib/events';
 
 function Avatar({ name }: { name: string }) {
   const initials = name
@@ -90,13 +87,17 @@ export default function ProfileScreen() {
   const [hostStats, setHostStats] = useState<{
     score: number; avgRating: number; ratingCount: number; eventsHosted: number;
   } | null>(null);
+  const [upcomingEvents, setUpcomingEvents] = useState<Awaited<ReturnType<typeof fetchUserUpcomingEvents>>>([]);
 
   const name = user?.user_metadata?.full_name ?? 'GoDo User';
   const email = user?.email ?? '';
   const memberYear = new Date(user?.created_at ?? Date.now()).getFullYear();
 
   useEffect(() => {
-    if (user) getHostStats(user.id).then(setHostStats);
+    if (user) {
+      getHostStats(user.id).then(setHostStats);
+      fetchUserUpcomingEvents(user.id).then(setUpcomingEvents);
+    }
   }, [user]);
 
   async function handleSignOut() {
@@ -160,19 +161,24 @@ export default function ProfileScreen() {
         </View>
 
         {/* Upcoming events */}
-        {UPCOMING.length > 0 && (
+        {upcomingEvents.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Your Upcoming Events</Text>
-            {UPCOMING.map((ev) => (
+            {upcomingEvents.map((ev) => (
               <Pressable
                 key={ev.id}
                 style={({ pressed }) => [styles.eventRow, pressed && styles.rowPressed]}
                 onPress={() => router.push(`/event/${ev.id}`)}
               >
-                <View style={styles.eventDot} />
+                <View style={styles.eventEmojiBubble}>
+                  <Text style={styles.eventEmojiText}>{ev.emoji}</Text>
+                </View>
                 <View style={styles.eventInfo}>
-                  <Text style={styles.eventTitle}>{ev.eventTitle}</Text>
-                  <Text style={styles.eventMeta}>{ev.timeLabel} · {ev.neighborhood}</Text>
+                  <Text style={styles.eventTitle}>{ev.title}</Text>
+                  <Text style={styles.eventMeta}>
+                    {ev.neighborhood ?? ''}
+                    {ev.startsAt ? ` · ${new Date(ev.startsAt).toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' })}` : ''}
+                  </Text>
                 </View>
                 <ChevronRight size={16} color={Colors.textLight} strokeWidth={2} />
               </Pressable>
@@ -342,13 +348,18 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 20,
     paddingVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
   },
-  eventDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.primary,
+  eventEmojiBubble: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F8F9FA',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
+  eventEmojiText: { fontSize: 20 },
   eventInfo: {
     flex: 1,
     gap: 2,

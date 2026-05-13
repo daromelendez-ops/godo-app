@@ -39,7 +39,8 @@ import {
   type EventComment,
 } from '../../lib/comments';
 import { pickMedia } from '../../lib/storage';
-import { isEventLiked, toggleEventLike, submitRating } from '../../lib/events';
+import { isEventLiked, toggleEventLike, submitRating, isEventSaved, toggleEventSave } from '../../lib/events';
+import { CategoryIcon } from '../../components/ui/CategoryIcon';
 import { uploadEventPhoto, getEventPhotos, type EventPhoto } from '../../lib/photos';
 
 const { width: W } = Dimensions.get('window');
@@ -65,6 +66,7 @@ export default function EventDetailScreen() {
   const [postingComment, setPostingComment] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [liked, setLiked] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [photos, setPhotos] = useState<EventPhoto[]>([]);
   const [showRateHost, setShowRateHost] = useState(false);
@@ -94,6 +96,7 @@ export default function EventDetailScreen() {
     );
     if (user) {
       isEventLiked(id, user.id).then(setLiked);
+      isEventSaved(id, user.id).then(setSaved);
     }
     return () => { commentChannelRef.current?.unsubscribe(); };
   }, [id, user]);
@@ -122,6 +125,13 @@ export default function EventDetailScreen() {
     const nowLiked = await toggleEventLike(event.id, user.id);
     setLiked(nowLiked);
     setLikesCount(c => nowLiked ? c + 1 : Math.max(0, c - 1));
+  }
+
+  async function handleSave() {
+    if (!user || !event) return;
+    const nowSaved = await toggleEventSave(event.id, user.id);
+    setSaved(nowSaved);
+    showToastMsg(nowSaved ? 'Event saved!' : 'Removed from saved.');
   }
 
   async function handleUploadPhoto() {
@@ -245,7 +255,10 @@ export default function EventDetailScreen() {
         <View style={s.body}>
           {/* Title block */}
           <View style={s.titleBlock}>
-            <Text style={s.timeLabel}>{event.timeLabel}</Text>
+            <View style={s.titleTopRow}>
+              <CategoryIcon category={event.category} size="md" />
+              <Text style={s.timeLabel}>{event.timeLabel}</Text>
+            </View>
             <Text style={s.title}>{event.eventTitle}</Text>
             {joinState === 'confirmed' && (
               <View style={s.youreInBadge}>
@@ -276,20 +289,24 @@ export default function EventDetailScreen() {
 
           {/* Host */}
           {event.host && (
-            <View style={s.row}>
+            <Pressable
+              style={s.row}
+              onPress={() => {
+                const hostId = (event as unknown as { host_user_id?: string }).host_user_id;
+                if (hostId) router.push(`/host/${hostId}`);
+              }}
+            >
               <View style={s.rowLeft}>
                 <View style={s.hostAvatarWrap}>
                   <Image source={{ uri: event.host.avatarUrl }} style={s.hostAvatar} />
                 </View>
                 <View>
                   <Text style={s.hostName}>{event.host.name}</Text>
-                  <Text style={s.hostSince}>Member since {event.host.memberSince}</Text>
+                  <Text style={s.hostSince}>Member since {event.host.memberSince} · Tap to view</Text>
                 </View>
               </View>
-              <Pressable hitSlop={8}>
-                <MessageCircle size={20} color={Colors.textSecondary} strokeWidth={2} />
-              </Pressable>
-            </View>
+              <MessageCircle size={20} color={Colors.textSecondary} strokeWidth={2} />
+            </Pressable>
           )}
 
           <View style={s.divider} />
@@ -322,8 +339,13 @@ export default function EventDetailScreen() {
                   strokeWidth={2}
                 />
               </Pressable>
-              <Pressable hitSlop={10}>
-                <Bookmark size={20} color={Colors.textSecondary} strokeWidth={2} />
+              <Pressable hitSlop={10} onPress={handleSave}>
+                <Bookmark
+                  size={20}
+                  color={saved ? Colors.primary : Colors.textSecondary}
+                  fill={saved ? Colors.primary : 'transparent'}
+                  strokeWidth={2}
+                />
               </Pressable>
               <Pressable hitSlop={10}>
                 <Share2 size={20} color={Colors.textSecondary} strokeWidth={2} />
@@ -595,7 +617,8 @@ const s = StyleSheet.create({
     color: Colors.textPrimary,
   },
   body: { paddingHorizontal: 20, paddingTop: 20 },
-  titleBlock: { gap: 6, marginBottom: 20 },
+  titleBlock: { gap: 10, marginBottom: 20 },
+  titleTopRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   timeLabel: {
     fontSize: 13,
     fontFamily: 'Inter_400Regular',

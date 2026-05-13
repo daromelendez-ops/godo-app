@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { View, StyleSheet, Pressable } from 'react-native';
-import { Home, MapPin, Plus, MessageCircle, User } from 'lucide-react-native';
+import { Home, Compass, Plus, LayoutDashboard, User } from 'lucide-react-native';
 import { Colors } from '../../constants/colors';
 
 function CreateTabButton(props: any) {
@@ -8,9 +8,10 @@ function CreateTabButton(props: any) {
     <Pressable
       onPress={props.onPress}
       style={styles.createBtnWrap}
+      accessibilityLabel="Create event"
     >
       <View style={styles.createBtn}>
-        <Plus size={28} color="#FFF" strokeWidth={2.5} />
+        <Plus size={26} color="#FFF" strokeWidth={2.5} />
       </View>
     </Pressable>
   );
@@ -32,18 +33,14 @@ export default function TabsLayout() {
         name="index"
         options={{
           tabBarLabel: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <Home size={size} color={color} strokeWidth={2} />
-          ),
+          tabBarIcon: ({ color }) => <Home size={22} color={color} strokeWidth={2} />,
         }}
       />
       <Tabs.Screen
         name="map"
         options={{
-          tabBarLabel: 'Map',
-          tabBarIcon: ({ color, size }) => (
-            <MapPin size={size} color={color} strokeWidth={2} />
-          ),
+          tabBarLabel: 'Nearby',
+          tabBarIcon: ({ color }) => <Compass size={22} color={color} strokeWidth={2} />,
         }}
       />
       <Tabs.Screen
@@ -56,19 +53,15 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="inbox"
         options={{
-          tabBarLabel: 'Inbox',
-          tabBarIcon: ({ color, size }) => (
-            <MessageCircle size={size} color={color} strokeWidth={2} />
-          ),
+          tabBarLabel: 'Manage',
+          tabBarIcon: ({ color }) => <LayoutDashboard size={22} color={color} strokeWidth={2} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           tabBarLabel: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <User size={size} color={color} strokeWidth={2} />
-          ),
+          tabBarIcon: ({ color }) => <User size={22} color={color} strokeWidth={2} />,
         }}
       />
     </Tabs>
@@ -80,8 +73,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
-    height: 72,
-    paddingBottom: 10,
+    height: 74,
+    paddingBottom: 12,
     paddingTop: 6,
   },
   tabLabel: {
@@ -93,20 +86,19 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingBottom: 8,
   },
   createBtn: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
-    shadowColor: '#3882F6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 8,
+    marginBottom: 12,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.40,
+    shadowRadius: 14,
+    elevation: 10,
   },
 });
