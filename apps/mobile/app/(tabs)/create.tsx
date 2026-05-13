@@ -9,11 +9,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   Switch,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { X, ChevronRight } from 'lucide-react-native';
 import { Colors } from '../../constants/colors';
+import { useAuthStore } from '../../stores/authStore';
+import { createEvent } from '../../lib/events';
 
 const CATEGORIES = [
   { id: 'social', label: 'Social', emoji: '🎉' },
@@ -35,6 +39,7 @@ const EVENT_TYPES = [
 ];
 
 export default function CreateScreen() {
+  const { user } = useAuthStore();
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
   const [eventType, setEventType] = useState('');
@@ -45,6 +50,8 @@ export default function CreateScreen() {
   const [description, setDescription] = useState('');
   const [address, setAddress] = useState('');
   const [neighborhood, setNeighborhood] = useState('');
+  const [dateText, setDateText] = useState('');
+  const [publishing, setPublishing] = useState(false);
 
   const selectedType = EVENT_TYPES.find(t => t.id === eventType);
   const minSpots = selectedType?.range[0] ?? 2;
@@ -57,7 +64,41 @@ export default function CreateScreen() {
     description.trim() &&
     address.trim() &&
     neighborhood.trim() &&
+    dateText.trim() &&
     (!isPaid || (price && parseFloat(price) > 0));
+
+  async function handlePublish() {
+    if (!canPublish || !user) return;
+    const parsed = new Date(dateText);
+    if (isNaN(parsed.getTime())) {
+      Alert.alert('Invalid date', 'Use format: YYYY-MM-DD HH:MM (e.g. 2025-06-15 19:00)');
+      return;
+    }
+    setPublishing(true);
+    const categoryLabel = CATEGORIES.find(c => c.id === category)?.label ?? category;
+    const eventEmoji = CATEGORIES.find(c => c.id === category)?.emoji ?? '🎉';
+    const id = await createEvent({
+      hostUserId: user.id,
+      title: title.trim(),
+      description: description.trim(),
+      emoji: eventEmoji,
+      categoryName: categoryLabel,
+      eventType,
+      maxGroupSize: spotsCount,
+      isPrivate,
+      isPaid,
+      priceCents: isPaid ? Math.round(parseFloat(price) * 100) : 0,
+      neighborhood: neighborhood.trim(),
+      address: address.trim(),
+      startsAt: parsed,
+    });
+    setPublishing(false);
+    if (id) {
+      router.replace(`/event/${id}`);
+    } else {
+      Alert.alert('Error', 'Could not publish event. Try again.');
+    }
+  }
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
@@ -226,6 +267,20 @@ export default function CreateScreen() {
             />
           </View>
 
+          {/* Date & time */}
+          <View style={s.section}>
+            <Text style={s.label}>Date & time *</Text>
+            <TextInput
+              style={s.input}
+              placeholder="YYYY-MM-DD HH:MM  (e.g. 2025-06-15 19:00)"
+              placeholderTextColor={Colors.textLight}
+              value={dateText}
+              onChangeText={setDateText}
+              keyboardType="numbers-and-punctuation"
+              returnKeyType="next"
+            />
+          </View>
+
           {/* Description */}
           <View style={s.section}>
             <Text style={s.label}>Description *</Text>
@@ -243,11 +298,17 @@ export default function CreateScreen() {
 
           {/* Publish */}
           <Pressable
-            style={[s.publishBtn, !canPublish && s.publishBtnDisabled]}
-            disabled={!canPublish}
+            style={[s.publishBtn, (!canPublish || publishing) && s.publishBtnDisabled]}
+            disabled={!canPublish || publishing}
+            onPress={handlePublish}
           >
-            <Text style={s.publishText}>Publish Event</Text>
-            <ChevronRight size={18} color="#FFF" strokeWidth={2.5} />
+            {publishing
+              ? <ActivityIndicator color="#FFF" />
+              : <>
+                  <Text style={s.publishText}>Publish Event</Text>
+                  <ChevronRight size={18} color="#FFF" strokeWidth={2.5} />
+                </>
+            }
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>

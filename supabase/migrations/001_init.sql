@@ -10,7 +10,7 @@ create extension if not exists "uuid-ossp";
 -- Interests (lookup table)
 -- ─────────────────────────────────────────
 create table public.interests (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   name text not null unique,
   emoji text,
   is_active boolean default true,
@@ -35,7 +35,7 @@ insert into public.interests (name, emoji) values
 -- Event categories (lookup table)
 -- ─────────────────────────────────────────
 create table public.event_categories (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   name text not null unique,
   emoji text,
   is_active boolean default true
@@ -108,7 +108,7 @@ create table public.user_interests (
 -- Events
 -- ─────────────────────────────────────────
 create table public.events (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   host_user_id uuid references public.profiles on delete cascade not null,
   category_id uuid references public.event_categories,
   title text not null,
@@ -142,7 +142,7 @@ create table public.events (
 -- Event attendees (participation state machine)
 -- ─────────────────────────────────────────
 create table public.event_attendees (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   event_id uuid references public.events on delete cascade not null,
   user_id uuid references public.profiles on delete cascade not null,
   state text not null default 'pending_approval'
@@ -181,7 +181,7 @@ create trigger on_attendee_state_change
 -- Event chats (one per event)
 -- ─────────────────────────────────────────
 create table public.event_chats (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   event_id uuid unique references public.events on delete cascade not null,
   status text not null default 'active' check (status in ('active', 'past', 'canceled')),
   created_at timestamptz default now()
@@ -198,7 +198,7 @@ create table public.event_chat_members (
 );
 
 create table public.event_messages (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   chat_id uuid references public.event_chats on delete cascade not null,
   sender_user_id uuid references public.profiles on delete cascade not null,
   message_type text not null default 'text' check (message_type in ('text', 'system')),
@@ -210,7 +210,7 @@ create table public.event_messages (
 -- Notifications
 -- ─────────────────────────────────────────
 create table public.notifications (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   user_id uuid references public.profiles on delete cascade not null,
   event_id uuid references public.events on delete set null,
   type text not null check (type in (
@@ -227,7 +227,7 @@ create table public.notifications (
 -- Payments & Refunds
 -- ─────────────────────────────────────────
 create table public.payments (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   event_id uuid references public.events on delete restrict not null,
   attendee_user_id uuid references public.profiles on delete restrict not null,
   host_user_id uuid references public.profiles on delete restrict not null,
@@ -247,7 +247,7 @@ create table public.payments (
 );
 
 create table public.refunds (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   payment_id uuid references public.payments on delete restrict not null,
   stripe_refund_id text unique,
   amount_cents integer not null,
@@ -260,7 +260,7 @@ create table public.refunds (
 -- Ratings (post-event, stars only — no written reviews)
 -- ─────────────────────────────────────────
 create table public.ratings (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   event_id uuid references public.events on delete cascade not null,
   rater_user_id uuid references public.profiles on delete cascade not null,
   rated_user_id uuid references public.profiles on delete cascade not null,
@@ -276,13 +276,13 @@ create table public.ratings (
 -- Memories (past events for confirmed attendees)
 -- ─────────────────────────────────────────
 create table public.memories (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   event_id uuid unique references public.events on delete cascade not null,
   created_at timestamptz default now()
 );
 
 create table public.memory_photos (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   memory_id uuid references public.memories on delete cascade not null,
   uploaded_by_user_id uuid references public.profiles on delete cascade not null,
   photo_url text not null,
@@ -294,7 +294,7 @@ create table public.memory_photos (
 -- Saved & Liked items
 -- ─────────────────────────────────────────
 create table public.saved_items (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   user_id uuid references public.profiles on delete cascade not null,
   item_type text not null check (item_type in ('event', 'recap', 'memory')),
   item_id uuid not null,
@@ -303,7 +303,7 @@ create table public.saved_items (
 );
 
 create table public.liked_items (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   user_id uuid references public.profiles on delete cascade not null,
   item_type text not null check (item_type in ('event', 'recap', 'memory')),
   item_id uuid not null,
@@ -315,7 +315,7 @@ create table public.liked_items (
 -- Reports
 -- ─────────────────────────────────────────
 create table public.reports (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   reporter_user_id uuid references public.profiles on delete cascade not null,
   event_id uuid references public.events on delete set null,
   reported_user_id uuid references public.profiles on delete set null,

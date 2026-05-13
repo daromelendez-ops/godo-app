@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,23 +13,33 @@ import { Bell } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { FeedCard } from '../../components/feed/FeedCard';
-import { MOCK_EVENTS, type FeedEvent } from '../../constants/mockData';
+import { type FeedEvent } from '../../constants/mockData';
+import { fetchFeed } from '../../lib/events';
 
 const FILTERS = ['All', 'Tonight', 'Tomorrow', 'This Weekend'];
 
 export default function HomeScreen() {
   const [activeFilter, setActiveFilter] = useState('All');
   const [refreshing, setRefreshing] = useState(false);
+  const [events, setEvents] = useState<FeedEvent[]>([]);
 
-  const onRefresh = useCallback(() => {
+  async function loadFeed() {
+    const data = await fetchFeed();
+    setEvents(data);
+  }
+
+  useEffect(() => { loadFeed(); }, []);
+
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
+    await loadFeed();
+    setRefreshing(false);
   }, []);
 
   const filtered: FeedEvent[] =
     activeFilter === 'All'
-      ? MOCK_EVENTS
-      : MOCK_EVENTS.filter(
+      ? events
+      : events.filter(
           (e: FeedEvent) =>
             e.type === 'upcoming' &&
             e.timeLabel?.toLowerCase().includes(activeFilter.toLowerCase()),

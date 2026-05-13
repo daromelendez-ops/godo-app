@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/colors';
 import { useAuthStore } from '../../stores/authStore';
+import { fetchInterestIds, saveUserInterests } from '../../lib/events';
 
 const INTERESTS = [
   { id: 'fitness', label: 'Fitness', emoji: '🏋️' },
@@ -37,6 +38,14 @@ export default function InterestsScreen() {
   async function handleContinue() {
     setLoading(true);
     await initialize();
+    const { user } = useAuthStore.getState();
+    if (user) {
+      const labels = selected.map(id => INTERESTS.find(i => i.id === id)?.label ?? '').filter(Boolean);
+      const rows = await fetchInterestIds(labels);
+      if (rows.length > 0) {
+        await saveUserInterests(user.id, rows.map(r => r.id));
+      }
+    }
     setLoading(false);
     setShowModal(true);
   }

@@ -23,8 +23,10 @@ import {
 } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Colors } from '../../constants/colors';
-import { MOCK_EVENTS, MAP_THUMBNAIL } from '../../constants/mockData';
+import { MAP_THUMBNAIL, type FeedEvent } from '../../constants/mockData';
 import { Confetti } from '../../components/ui/Confetti';
+import { fetchEvent, requestToJoin, cancelJoinRequest, getAttendeeState } from '../../lib/events';
+import { useAuthStore } from '../../stores/authStore';
 
 const { width: W } = Dimensions.get('window');
 const MEDIA_H = Math.round(W * 0.72);
@@ -33,7 +35,8 @@ type JoinState = 'none' | 'pending' | 'confirmed';
 
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const event = MOCK_EVENTS.find(e => e.id === id);
+  const { user } = useAuthStore();
+  const [event, setEvent] = useState<FeedEvent | null>(null);
 
   const [joinState, setJoinState] = useState<JoinState>('none');
   const [showRSVP, setShowRSVP] = useState(false);
@@ -41,7 +44,23 @@ export default function EventDetailScreen() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [toast, setToast] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
-  const [attendeeCount, setAttendeeCount] = useState(event?.attending ?? 0);
+  const [attendeeCount, setAttendeeCount] = useState(0);
+
+  useEffect(() => {
+    if (!id) return;
+    fetchEvent(id).then(ev => {
+      if (ev) {
+        setEvent(ev);
+        setAttendeeCount(ev.attending ?? 0);
+      }
+    });
+    if (user) {
+      getAttendeeState(id, user.id).then(state => {
+        if (state === 'confirmed') setJoinState('confirmed');
+        else if (state === 'pending_approval') setJoinState('pending');
+      });
+    }
+  }, [id, user]);
 
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const modalAnim = useRef(new Animated.Value(0)).current;
@@ -85,9 +104,10 @@ export default function EventDetailScreen() {
     openModal('rsvp');
   }
 
-  function confirmRSVP() {
-    closeModal(() => {
+  async function confirmRSVP() {
+    closeModal(async () => {
       setJoinState('pending');
+      if (user && event) await requestToJoin(event.id, user.id);
       showToastMsg("Request sent! Waiting for host approval.");
     });
   }
@@ -96,12 +116,13 @@ export default function EventDetailScreen() {
     openModal('cancel');
   }
 
-  function confirmCancel() {
-    closeModal(() => {
+  async function confirmCancel() {
+    closeModal(async () => {
       const wasPending = joinState === 'pending';
+      if (user && event) await cancelJoinRequest(event.id, user.id);
       setJoinState('none');
       if (joinState === 'confirmed') setAttendeeCount(c => c - 1);
-      showToastMsg(wasPending ? 'Request canceled.' : 'You\'ve left the event.');
+      showToastMsg(wasPending ? 'Request canceled.' : "You've left the event.");
     });
   }
 
