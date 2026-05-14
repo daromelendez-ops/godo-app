@@ -1,97 +1,149 @@
-import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
 import { router } from 'expo-router';
 import { Colors } from '../../constants/colors';
 
 export default function WelcomeScreen() {
+  const logoAnim  = useRef(new Animated.Value(0)).current;
+  const textAnim  = useRef(new Animated.Value(0)).current;
+  const btnsAnim  = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.sequence([
+      Animated.timing(logoAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.timing(textAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.timing(btnsAnim, { toValue: 1, duration: 350, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  const logoStyle = {
+    opacity: logoAnim,
+    transform: [{ scale: logoAnim.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }) }],
+  };
+  const textStyle = {
+    opacity: textAnim,
+    transform: [{ translateY: textAnim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
+  };
+  const btnsStyle = {
+    opacity: btnsAnim,
+    transform: [{ translateY: btnsAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
+  };
+
   return (
-    <View style={styles.container}>
-      <View style={styles.hero}>
-        <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>GoDo</Text>
-        </View>
-        <Text style={styles.tagline}>Find something fun{'\n'}near you — tonight.</Text>
-        <Text style={styles.subtitle}>
-          Real activities. Real people.{'\n'}No scrolling required.
-        </Text>
+    <View style={s.container}>
+
+      {/* ── Center block: logo + tagline ── */}
+      <View style={s.center}>
+        <Animated.View style={[s.iconWrap, logoStyle]}>
+          <Text style={s.iconText}>GoDo</Text>
+        </Animated.View>
+
+        <Animated.View style={textStyle}>
+          <Text style={s.tagline}>
+            Let's{' '}
+            <Text style={s.taglineBlue}>GoDo</Text>
+            {' '}something
+          </Text>
+        </Animated.View>
       </View>
 
-      <View style={styles.actions}>
+      {/* ── Bottom buttons ── */}
+      <Animated.View style={[s.actions, btnsStyle]}>
         <Pressable
-          style={styles.primaryButton}
+          style={s.primaryBtn}
           onPress={() => router.push('/(auth)/sign-up-options')}
         >
-          <Text style={styles.primaryButtonText}>Get Started</Text>
+          <Text style={s.primaryBtnText}>Get Started</Text>
         </Pressable>
 
         <Pressable
-          style={styles.secondaryButton}
+          style={s.secondaryBtn}
           onPress={() => router.push('/(auth)/email-sign-in')}
         >
-          <Text style={styles.secondaryButtonText}>I already have an account</Text>
+          <Text style={s.secondaryBtnText}>I already have an account</Text>
         </Pressable>
-      </View>
+      </Animated.View>
+
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.primary,
-    justifyContent: 'space-between',
-    paddingTop: 100,
-    paddingBottom: 56,
-    paddingHorizontal: 24,
-  },
-  hero: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  logoContainer: {
-    marginBottom: 32,
-  },
-  logoText: {
-    fontSize: 48,
-    fontFamily: 'Inter_700Bold',
-    color: '#FFFFFF',
-    letterSpacing: -1,
-  },
-  tagline: {
-    fontSize: 32,
-    fontFamily: 'Inter_700Bold',
-    color: '#FFFFFF',
-    lineHeight: 40,
-    marginBottom: 16,
-  },
-  subtitle: {
-    fontSize: 17,
-    fontFamily: 'Inter_400Regular',
-    color: 'rgba(255,255,255,0.75)',
-    lineHeight: 26,
-  },
-  actions: {
-    gap: 12,
-  },
-  primaryButton: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    height: 56,
+    paddingBottom: 52,
+    paddingHorizontal: 28,
+  },
+
+  /* center section */
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 24,
+  },
+
+  /* blue rounded square icon */
+  iconWrap: {
+    width: 96,
+    height: 96,
+    borderRadius: 24,
+    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 12,
   },
-  primaryButtonText: {
-    fontSize: 17,
-    fontFamily: 'Inter_600SemiBold',
+  iconText: {
+    fontSize: 26,
+    fontFamily: 'Inter_700Bold',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+  },
+
+  /* tagline */
+  tagline: {
+    fontSize: 26,
+    fontFamily: 'Inter_400Regular',
+    color: '#1E293B',
+    letterSpacing: -0.3,
+  },
+  taglineBlue: {
+    fontFamily: 'Inter_700Bold',
     color: Colors.primary,
   },
-  secondaryButton: {
+
+  /* buttons */
+  actions: { gap: 12 },
+  primaryBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: 16,
+    height: 58,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  primaryBtnText: {
+    fontSize: 17,
+    fontFamily: 'Inter_600SemiBold',
+    color: '#FFFFFF',
+  },
+  secondaryBtn: {
     height: 48,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  secondaryButtonText: {
+  secondaryBtnText: {
     fontSize: 15,
     fontFamily: 'Inter_500Medium',
-    color: 'rgba(255,255,255,0.8)',
+    color: '#64748B',
   },
 });
