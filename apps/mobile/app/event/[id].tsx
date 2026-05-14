@@ -221,6 +221,7 @@ export default function EventDetailScreen() {
     );
   }
 
+  const isHost = !!user && user.id === event.hostUserId;
   const isPaid = event.price && event.price !== 'Free';
   const ctaLabel =
     joinState === 'confirmed'
@@ -235,7 +236,7 @@ export default function EventDetailScreen() {
     <SafeAreaView style={s.safe} edges={['top']}>
       {/* Back */}
       <View style={s.topBar}>
-        <Pressable style={s.backBtn} onPress={() => router.back()} hitSlop={8}>
+        <Pressable style={s.backBtn} onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/')} hitSlop={8}>
           <ArrowLeft size={24} color={Colors.textPrimary} strokeWidth={2} />
         </Pressable>
       </View>
@@ -437,38 +438,47 @@ export default function EventDetailScreen() {
 
       {/* Sticky CTA */}
       <View style={s.stickyBar}>
-        <Pressable
-          style={[
-            s.ctaBtn,
-            joinState === 'confirmed' && s.ctaBtnIn,
-            joinState === 'pending' && s.ctaBtnPending,
-          ]}
-          onPress={handleCTA}
-          disabled={joinState === 'pending'}
-        >
-          <Text
-            style={[
-              s.ctaText,
-              joinState === 'confirmed' && s.ctaTextIn,
-              joinState === 'pending' && s.ctaTextPending,
-            ]}
-          >
-            {ctaLabel}
-          </Text>
-        </Pressable>
-        {(joinState === 'confirmed' || joinState === 'pending') && (
-          <View style={s.cancelRow}>
-            <Pressable style={s.cancelLink} onPress={handleCancelPress}>
-              <Text style={s.cancelLinkText}>
-                {joinState === 'pending' ? 'Cancel Request' : 'Cancel'}
+        {isHost ? (
+          <View style={s.hostBadge}>
+            <Check size={16} color={Colors.primary} strokeWidth={2.5} />
+            <Text style={s.hostBadgeText}>You're the Host</Text>
+          </View>
+        ) : (
+          <>
+            <Pressable
+              style={[
+                s.ctaBtn,
+                joinState === 'confirmed' && s.ctaBtnIn,
+                joinState === 'pending' && s.ctaBtnPending,
+              ]}
+              onPress={handleCTA}
+              disabled={joinState === 'pending'}
+            >
+              <Text
+                style={[
+                  s.ctaText,
+                  joinState === 'confirmed' && s.ctaTextIn,
+                  joinState === 'pending' && s.ctaTextPending,
+                ]}
+              >
+                {ctaLabel}
               </Text>
             </Pressable>
-            {joinState === 'confirmed' && !hostRated && (
-              <Pressable style={s.rateHostLink} onPress={() => setShowRateHost(true)}>
-                <Text style={s.rateHostLinkText}>⭐ Rate Host</Text>
-              </Pressable>
+            {(joinState === 'confirmed' || joinState === 'pending') && (
+              <View style={s.cancelRow}>
+                <Pressable style={s.cancelLink} onPress={handleCancelPress}>
+                  <Text style={s.cancelLinkText}>
+                    {joinState === 'pending' ? 'Cancel Request' : 'Cancel'}
+                  </Text>
+                </Pressable>
+                {joinState === 'confirmed' && !hostRated && (
+                  <Pressable style={s.rateHostLink} onPress={() => setShowRateHost(true)}>
+                    <Text style={s.rateHostLinkText}>⭐ Rate Host</Text>
+                  </Pressable>
+                )}
+              </View>
             )}
-          </View>
+          </>
         )}
       </View>
 
@@ -726,6 +736,20 @@ const s = StyleSheet.create({
   },
   ctaTextIn: { color: Colors.primary },
   ctaTextPending: { color: Colors.textLight },
+  hostBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    backgroundColor: Colors.primaryLight,
+    borderRadius: 14,
+  },
+  hostBadgeText: {
+    fontSize: 16,
+    fontFamily: 'Inter_600SemiBold',
+    color: Colors.primary,
+  },
   cancelRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 20 },
   cancelLink: { alignItems: 'center', paddingVertical: 4 },
   cancelLinkText: { fontSize: 14, fontFamily: 'Inter_400Regular', color: Colors.textLight },
