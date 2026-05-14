@@ -102,30 +102,125 @@ const STATS = [
   { value: '4.9', label: 'Avg host rating' },
 ];
 
+function DemoBanner() {
+  return (
+    <div className="fixed top-0 left-0 right-0 z-[60] bg-[#3882F6] text-white text-center py-2 px-4 text-sm font-semibold flex items-center justify-center gap-2">
+      <span className="inline-flex items-center gap-1.5 bg-white/20 text-white text-xs font-bold px-2.5 py-0.5 rounded-full tracking-wider uppercase">Demo</span>
+      <span>This is a live demo — real data, real features. Try it now.</span>
+      <a href="#demo-access" className="underline underline-offset-2 hover:text-blue-100 transition-colors ml-1">Get access →</a>
+    </div>
+  );
+}
+
 function NavBar() {
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+    <nav className="fixed top-8 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <span className="text-2xl font-black text-[#3882F6] tracking-tight">GoDo</span>
+        <div className="flex items-center gap-3">
+          <span className="text-2xl font-black text-[#3882F6] tracking-tight">GoDo</span>
+          <span className="bg-[#3882F6]/10 text-[#3882F6] text-xs font-bold px-2 py-0.5 rounded-full tracking-wider uppercase">Demo</span>
+        </div>
         <div className="hidden sm:flex items-center gap-8 text-sm font-medium text-gray-600">
+          <a href="#demo-access" className="text-[#3882F6] font-semibold hover:text-[#2563EB] transition-colors">Try Demo</a>
           <a href="#how-it-works" className="hover:text-gray-900 transition-colors">How it works</a>
           <a href="#features" className="hover:text-gray-900 transition-colors">Features</a>
-          <a href="#testimonials" className="hover:text-gray-900 transition-colors">Stories</a>
         </div>
         <a
-          href="#waitlist"
+          href="#demo-access"
           className="bg-[#3882F6] text-white text-sm font-semibold px-5 py-2.5 rounded-full hover:bg-[#2563EB] transition-colors"
         >
-          Join Waitlist
+          Try it now
         </a>
       </div>
     </nav>
   );
 }
 
+function DemoAccessSection() {
+  return (
+    <section id="demo-access" className="bg-[#0F172A] py-20">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+        <div className="inline-flex items-center gap-2 bg-[#3882F6]/20 text-[#60A5FA] text-xs font-bold px-3 py-1.5 rounded-full mb-6 tracking-wider uppercase">
+          <span className="w-2 h-2 bg-[#3882F6] rounded-full animate-pulse" />
+          Live Demo — Try it right now
+        </div>
+        <h2 className="text-4xl sm:text-5xl font-black text-white mb-4 tracking-tight">
+          Get the app. Start exploring.
+        </h2>
+        <p className="text-lg text-slate-400 mb-12 max-w-xl mx-auto">
+          The full GoDo experience is live on your phone. Sign up, create events, invite people, upload photos — everything works.
+        </p>
+        <div className="grid sm:grid-cols-2 gap-6 mb-10">
+          {/* iOS */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-left hover:bg-white/8 transition-colors">
+            <div className="w-12 h-12 bg-[#3882F6]/20 rounded-xl flex items-center justify-center mb-5">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 8v4l3 3"/></svg>
+            </div>
+            <h3 className="text-white font-bold text-lg mb-2">iPhone</h3>
+            <p className="text-slate-400 text-sm mb-5 leading-relaxed">Download Expo Go from the App Store, then open the demo link below.</p>
+            <ol className="text-slate-300 text-sm space-y-2 mb-6">
+              <li className="flex gap-2"><span className="text-[#3882F6] font-bold">1.</span> Download <strong className="text-white">Expo Go</strong> from the App Store</li>
+              <li className="flex gap-2"><span className="text-[#3882F6] font-bold">2.</span> Open the Camera app and scan the QR below</li>
+              <li className="flex gap-2"><span className="text-[#3882F6] font-bold">3.</span> Tap the notification to open in Expo Go</li>
+            </ol>
+            <a
+              href="https://apps.apple.com/app/expo-go/id982107779"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-[#3882F6] text-white text-sm font-semibold px-5 py-2.5 rounded-full hover:bg-[#2563EB] transition-colors"
+            >
+              Download Expo Go →
+            </a>
+          </div>
+          {/* Android */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-left hover:bg-white/8 transition-colors">
+            <div className="w-12 h-12 bg-[#059669]/20 rounded-xl flex items-center justify-center mb-5">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            </div>
+            <h3 className="text-white font-bold text-lg mb-2">Android</h3>
+            <p className="text-slate-400 text-sm mb-5 leading-relaxed">Download Expo Go from Google Play, then scan the QR code or enter the link manually.</p>
+            <ol className="text-slate-300 text-sm space-y-2 mb-6">
+              <li className="flex gap-2"><span className="text-[#059669] font-bold">1.</span> Download <strong className="text-white">Expo Go</strong> from Google Play</li>
+              <li className="flex gap-2"><span className="text-[#059669] font-bold">2.</span> Open Expo Go and tap <strong className="text-white">Scan QR code</strong></li>
+              <li className="flex gap-2"><span className="text-[#059669] font-bold">3.</span> Point your camera at the QR below</li>
+            </ol>
+            <a
+              href="https://play.google.com/store/apps/details?id=host.exp.exponent"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-[#059669] text-white text-sm font-semibold px-5 py-2.5 rounded-full hover:bg-[#047857] transition-colors"
+            >
+              Download Expo Go →
+            </a>
+          </div>
+        </div>
+
+        {/* QR placeholder + link */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-8 max-w-sm mx-auto">
+          <p className="text-slate-400 text-xs uppercase tracking-wider font-semibold mb-4">Scan to open demo</p>
+          <div className="w-40 h-40 bg-white rounded-xl mx-auto flex items-center justify-center mb-4">
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=152x152&data=exp%3A%2F%2Fu.expo.dev%2Fgodo-demo&color=0f172a&bgcolor=ffffff`}
+              alt="QR code"
+              className="w-38 h-38 rounded-lg"
+              width={152}
+              height={152}
+            />
+          </div>
+          <p className="text-slate-500 text-xs">Point your phone camera at this code</p>
+        </div>
+
+        <p className="text-slate-600 text-xs mt-8">
+          Demo uses real data. Be respectful — don't spam or post inappropriate content.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function HeroSection() {
   return (
-    <section className="relative overflow-hidden bg-white pt-16">
+    <section className="relative overflow-hidden bg-white pt-24">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-[#3882F6]/5 rounded-full blur-3xl" />
       </div>
@@ -498,8 +593,10 @@ function Footer() {
 export default function App() {
   return (
     <div className="font-sans">
+      <DemoBanner />
       <NavBar />
       <HeroSection />
+      <DemoAccessSection />
       <StatsSection />
       <FeaturesSection />
       <HowItWorksSection />
